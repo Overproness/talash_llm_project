@@ -16,6 +16,21 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export interface LLMProvider {
+  label: string
+  requires_key: boolean
+  key_env?: string
+  models: string[]
+}
+
+export interface LLMSettings {
+  active_provider: string
+  active_model: string
+  available: boolean
+  providers: Record<string, LLMProvider>
+  configured: Record<string, boolean>
+}
+
 export const api = {
   health: () => request<{ status: string; ollama: string }>('/health'),
 
@@ -37,4 +52,15 @@ export const api = {
 
   deleteCandidate: (id: string) =>
     request<{ message: string }>(`/candidates/${id}`, { method: 'DELETE' }),
+
+  getLLMSettings: () => request<LLMSettings>('/settings/llm'),
+
+  setLLMProvider: (provider: string, model: string) =>
+    request<{ active_provider: string; active_model: string; available: boolean }>(
+      '/settings/llm',
+      {
+        method: 'POST',
+        body: JSON.stringify({ provider, model }),
+      }
+    ),
 }

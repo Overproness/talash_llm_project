@@ -1,16 +1,152 @@
 """
-LLM Client — wraps Ollama for structured CV extraction.
-Falls back to rule-based extraction if Ollama is unavailable.
+LLM Client — LangChain multi-provider CV extraction.
+
+Supported providers:
+  ollama  — local Ollama server (llama3.2:3b, mistral, etc.)
+  gemini  — Google Gemini API
+  openai  — OpenAI API
+  grok    — xAI Grok (OpenAI-compatible endpoint)
+
+Provider and model can be switched at runtime via set_runtime_provider()
+without restarting the server.  Falls back to rule-based extraction
+when the active provider is unavailable.
 """
 
 import json
 import logging
-import httpx
+from dataclasses import dataclass
+
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-EXTRACTION_PROMPT = """You are an expert CV/resume parser. Extract structured information from the following CV text and return a valid JSON object.
+# ── Runtime provider state ────────────────────────────────────────────────────
+
+@dataclass
+class _RuntimeConfig:
+    provider: str = ""   # empty → use settings default
+    model: str = ""      # empty → use provider default model
+
+_runtime = _RuntimeConfig()
+
+
+def get_active_provider() -> str:
+    """Return the currently active LLM provider name."""
+    return _runtime.provider or get_settings().llm_provider
+
+
+def get_active_model() -> str:
+    """Return the currently active model name for the active provider."""
+    if _runtime.model:
+        return _runtime.model
+    settings = get_settings()
+    defaults = {
+        "ollama": settings.ollama_model,
+        "gemini": settings.gemini_model,
+        "openai": settings.openai_model,
+        "grok":   settings.grok_model,
+    }
+    return defaults.get(get_active_provider(), "")
+
+
+def set_runtime_provider(provider: str, model: str = "") -> None:
+    """Switch provider (and optionally model) at runtime, no restart needed."""
+    _runtime.provider = provider
+    _runtime.model = model
+    logger.info("LLM provider switched → %s / %s", provider, model or "(default)")
+
+
+# ── LLM factory ──────────────────────────────────────────────────────────────
+
+def get_llm() -> BaseChatModel:
+    """Instantiate and return a LangChain chat model for the active provider."""
+    settings = get_settings()
+    provider = get_active_provider()
+    model = get_active_model()
+
+    if provider == "ollama":
+        from langchain_ollama import ChatOllama
+        return ChatOllama(
+            base_url=settings.ollama_host,
+            model=model,
+            format="json",
+            temperature=0.1,
+            num_predict=4096,
+        )
+
+    if provider == "gemini":
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        return ChatGoogleGenerativeAI(
+            model=model,
+            google_api_key=settings.google_api_key,
+            temperature=0.1,
+        )
+
+    if provider == "openai":
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(
+            model=model,
+            api_key=settings.openai_api_key,
+            temperature=0.1,
+        )
+
+    if provider == "grok":
+        from langchain_openai import ChatOpenAI
+        return ChatOpenAI(
+            model=model,
+            api_key=settings.xai_api_key,
+            base_url="https://api.x.ai/v1",
+            temperature=0.1,
+        )
+
+    raise ValueError(f"Unknown LLM provider: {provider!r}")
+
+
+# ── Availability check ────────────────────────────────────────────────────────
+
+async def is_llm_available() -> bool:
+    """Check whether the active provider is reachable / properly configured."""
+    settings = get_settings()
+    provider = get_active_provider()
+
+    if provider == "ollama":
+        import httpx
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                resp = await client.get(f"{settings.ollama_host}/api/tags")
+                return resp.status_code == 200
+        except Exception:
+            return False
+
+    if provider == "gemini":
+        return bool(settings.google_api_key)
+
+    if provider == "openai":
+        return bool(settings.openai_api_key)
+
+    if provider == "grok":
+        return bool(settings.xai_api_key)
+
+    return False
+
+
+# Backward-compat alias (health.py + cv_parser.py import this name)
+async def is_ollama_available() -> bool:
+    return await is_llm_available()
+
+
+# ── Extraction prompt ─────────────────────────────────────────────────────────
+
+_SYSTEM = (
+    "You are an expert CV/resume parser. Extract all structured information "
+    "from the provided CV text and return ONLY a valid JSON object matching "
+    "the schema. Use empty strings or empty arrays for missing fields."
+)
+
+_EXTRACTION_PROMPT = """Extract structured CV data from the following text and return a valid JSON object.
 
 CV TEXT:
 {cv_text}
@@ -91,39 +227,35 @@ Return ONLY a valid JSON object with this exact structure (use empty strings/arr
 }}"""
 
 
-async def is_ollama_available() -> bool:
-    """Check if Ollama is running and accessible."""
-    settings = get_settings()
-    try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            resp = await client.get(f"{settings.ollama_host}/api/tags")
-            return resp.status_code == 200
-    except Exception:
-        return False
-
+# ── Main extraction function ──────────────────────────────────────────────────
 
 async def extract_with_llm(cv_text: str) -> dict:
     """
-    Extract structured data from CV text using Ollama.
-    Returns parsed dict or raises on failure.
+    Extract structured CV data using the active LangChain provider.
+    Truncates input to 12 000 chars for context-window safety.
+    Raises on JSON parse failure or network error.
     """
-    settings = get_settings()
-    prompt = EXTRACTION_PROMPT.format(cv_text=cv_text[:8000])  # Trim to avoid context overflow
+    provider = get_active_provider()
+    llm = get_llm()
 
-    payload = {
-        "model": settings.ollama_model,
-        "prompt": prompt,
-        "format": "json",
-        "stream": False,
-        "options": {"temperature": 0.1, "num_predict": 4096},
-    }
+    messages = [
+        SystemMessage(content=_SYSTEM),
+        HumanMessage(content=_EXTRACTION_PROMPT.format(cv_text=cv_text[:12000])),
+    ]
 
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        resp = await client.post(
-            f"{settings.ollama_host}/api/generate",
-            json=payload,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        raw_response = data.get("response", "{}")
-        return json.loads(raw_response)
+    logger.info("Extracting CV with provider=%s model=%s", provider, get_active_model())
+    response = await llm.ainvoke(messages)
+    raw: str = response.content
+
+    # Strip markdown code fences some models add
+    if "```json" in raw:
+        raw = raw.split("```json", 1)[1].split("```", 1)[0].strip()
+    elif "```" in raw:
+        raw = raw.split("```", 1)[1].split("```", 1)[0].strip()
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        logger.error("Provider %s returned invalid JSON: %s", provider, exc)
+        raise
+

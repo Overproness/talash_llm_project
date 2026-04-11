@@ -1,8 +1,11 @@
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from functools import lru_cache
 
 
 class Settings(BaseSettings):
+    model_config = ConfigDict(env_file=".env", extra="ignore")
+
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_db: str = "talash"
     ollama_host: str = "http://localhost:11434"
@@ -13,10 +16,6 @@ class Settings(BaseSettings):
     reference_data_dir: str = "data/reference_data"
     max_file_size_mb: int = 50
     api_prefix: str = "/api"
-
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
 
 
 @lru_cache()

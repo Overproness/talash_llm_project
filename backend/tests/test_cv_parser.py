@@ -168,15 +168,19 @@ class TestCSVExport:
 class TestPDFExtraction:
     """Requires the sample PDF at data/sample_cvs/ or data/."""
 
-    SAMPLE_PDF_PATHS = [
-        "data/sample_cvs/Handler (8).pdf",
-        "Handler (8).pdf",
-    ]
-
-    def _find_pdf(self) -> str | None:
-        for p in self.SAMPLE_PDF_PATHS:
-            if os.path.exists(p):
-                return p
+    @staticmethod
+    def _find_pdf() -> str | None:
+        # Try absolute paths relative to this file's location
+        this_dir = Path(__file__).parent
+        project_root = this_dir.parent.parent  # backend/tests -> backend -> project root
+        candidates = [
+            project_root / "data" / "sample_cvs" / "Handler (8).pdf",
+            project_root / "Handler (8).pdf",
+            this_dir.parent / "data" / "sample_cvs" / "Handler (8).pdf",
+        ]
+        for p in candidates:
+            if p.exists():
+                return str(p)
         return None
 
     def test_pymupdf_extracts_text(self):

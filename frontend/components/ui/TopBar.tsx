@@ -1,13 +1,13 @@
-'use client'
+"use client";
 
 export default function TopBar({
   title,
   breadcrumb,
   action,
 }: {
-  title?: string
-  breadcrumb?: string[]
-  action?: React.ReactNode
+  title?: string;
+  breadcrumb?: string[];
+  action?: React.ReactNode;
 }) {
   return (
     <header className="fixed top-0 right-0 w-[calc(100%-220px)] h-16 z-40 bg-white/80 backdrop-blur-md flex justify-between items-center px-8">
@@ -17,8 +17,16 @@ export default function TopBar({
           <nav className="flex items-center gap-2 text-[11px] font-medium text-on-surface-variant uppercase tracking-widest">
             {breadcrumb.map((crumb, i) => (
               <span key={i} className="flex items-center gap-2">
-                {i > 0 && <span className="material-symbols-outlined text-[12px]">chevron_right</span>}
-                <span className={i === breadcrumb.length - 1 ? 'text-primary' : ''}>{crumb}</span>
+                {i > 0 && (
+                  <span className="material-symbols-outlined text-[12px]">
+                    chevron_right
+                  </span>
+                )}
+                <span
+                  className={i === breadcrumb.length - 1 ? "text-primary" : ""}
+                >
+                  {crumb}
+                </span>
               </span>
             ))}
           </nav>
@@ -49,7 +57,9 @@ export default function TopBar({
         <div className="flex items-center gap-3 ml-2 border-l pl-6 border-outline-variant/30">
           <div className="text-right">
             <div className="text-xs font-semibold text-on-surface">Admin</div>
-            <div className="text-[10px] text-on-surface-variant uppercase tracking-wider">Recruiter</div>
+            <div className="text-[10px] text-on-surface-variant uppercase tracking-wider">
+              Recruiter
+            </div>
           </div>
           <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-bold text-xs">
             A
@@ -57,5 +67,5 @@ export default function TopBar({
         </div>
       </div>
     </header>
-  )
+  );
 }

@@ -24,7 +24,7 @@ PROVIDERS: dict[str, dict] = {
         "label": "Google Gemini",
         "requires_key": True,
         "key_env": "GOOGLE_API_KEY",
-        "models": ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"],
+        "models": ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro"],
     },
     "openai": {
         "label": "OpenAI",

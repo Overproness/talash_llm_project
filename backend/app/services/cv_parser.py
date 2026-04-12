@@ -50,14 +50,27 @@ def extract_text_pymupdf(pdf_path: str) -> str:
 
 
 def extract_text_pdfplumber(pdf_path: str) -> str:
-    """Extract text from PDF using pdfplumber (fallback for complex layouts)."""
+    """Extract text from PDF using pdfplumber (fallback for complex layouts).
+    Also attempts table extraction to capture structured/tabular CV data."""
     text = ""
     try:
         with pdfplumber.open(pdf_path) as pdf:
             for page in pdf.pages:
-                page_text = page.extract_text()
-                if page_text:
-                    text += page_text + "\n"
+                # Try table extraction first — captures tabular CVs much better
+                tables = page.extract_tables()
+                if tables:
+                    for table in tables:
+                        for row in table:
+                            if row:
+                                # Join non-None cells with a tab separator
+                                row_text = "\t".join(cell.strip() if cell else "" for cell in row)
+                                if row_text.strip():
+                                    text += row_text + "\n"
+                    text += "\n"
+                else:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + "\n"
     except Exception as e:
         logger.warning(f"pdfplumber extraction failed: {e}")
     return text.strip()
@@ -66,12 +79,22 @@ def extract_text_pdfplumber(pdf_path: str) -> str:
 def extract_pdf_text(pdf_path: str) -> str:
     """
     Extract text from a PDF file.
-    Uses PyMuPDF first; falls back to pdfplumber if result is too short.
+    Uses both PyMuPDF and pdfplumber and returns the richer result.
+    pdfplumber's table extraction handles structured/tabular CVs much better.
     """
-    text = extract_text_pymupdf(pdf_path)
-    if len(text) < 200:
-        logger.info(f"PyMuPDF yielded short text ({len(text)} chars), trying pdfplumber")
-        text = extract_text_pdfplumber(pdf_path)
+    pymupdf_text = extract_text_pymupdf(pdf_path)
+    plumber_text = extract_text_pdfplumber(pdf_path)
+
+    # Choose the longer/richer extraction, preferring pdfplumber when it adds tables
+    if len(plumber_text) > len(pymupdf_text) * 0.7:
+        # Combine both: pdfplumber tables + pymupdf prose
+        combined = plumber_text
+        if pymupdf_text and len(pymupdf_text) > len(plumber_text):
+            combined = pymupdf_text + "\n\n--- TABLE EXTRACTION ---\n\n" + plumber_text
+        text = combined
+    else:
+        text = pymupdf_text if len(pymupdf_text) >= len(plumber_text) else plumber_text
+
     if len(text) < 100:
         logger.warning(f"Both extractors yielded minimal text for {pdf_path}. PDF may be image-based.")
     return text
@@ -418,8 +441,8 @@ async def parse_cv(pdf_path: str, processed_dir: str) -> CandidateDocument:
     extraction_method = "rule_based"
     extracted: dict = {}
 
-    ollama_ok = await is_ollama_available()
-    if ollama_ok:
+    llm_ok = await is_ollama_available()  # alias for is_llm_available()
+    if llm_ok:
         try:
             extracted = await extract_with_llm(raw_text)
             extraction_method = "llm"
@@ -428,7 +451,7 @@ async def parse_cv(pdf_path: str, processed_dir: str) -> CandidateDocument:
             logger.warning(f"LLM extraction failed ({e}), falling back to rule-based")
             extracted = rule_based_extract(raw_text)
     else:
-        logger.info(f"Ollama unavailable, using rule-based extraction for {filename}")
+        logger.info(f"LLM unavailable, using rule-based extraction for {filename}")
         extracted = rule_based_extract(raw_text)
 
     # Step 3 — Build CandidateDocument

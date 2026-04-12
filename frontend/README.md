@@ -51,15 +51,15 @@ npm run lint     # Run ESLint
 
 ## Pages
 
-| Route | Description |
-|-------|-------------|
-| `/` | CV upload page — drag-and-drop or browse PDF files |
-| `/dashboard` | Overview dashboard with candidate statistics |
-| `/candidates` | Paginated list of all parsed candidates |
-| `/candidates/[id]` | Full candidate profile view |
-| `/compare` | Side-by-side candidate comparison |
-| `/email-drafts` | AI-generated email drafts for candidates |
-| `/settings` | LLM provider configuration (Ollama, Gemini, OpenAI, Grok) |
+| Route              | Description                                               |
+| ------------------ | --------------------------------------------------------- |
+| `/`                | CV upload page — drag-and-drop or browse PDF files        |
+| `/dashboard`       | Overview dashboard with candidate statistics              |
+| `/candidates`      | Paginated list of all parsed candidates                   |
+| `/candidates/[id]` | Full candidate profile view                               |
+| `/compare`         | Side-by-side candidate comparison                         |
+| `/email-drafts`    | AI-generated email drafts for candidates                  |
+| `/settings`        | LLM provider configuration (Ollama, Gemini, OpenAI, Grok) |
 
 ## Docker
 

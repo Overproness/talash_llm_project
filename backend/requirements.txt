@@ -3,8 +3,8 @@ uvicorn[standard]==0.32.1
 python-multipart==0.0.17
 pydantic==2.10.3
 pydantic-settings==2.6.1
-motor==3.6.0
-pymongo==4.10.1
+motor
+pymongo
 PyMuPDF==1.25.1
 pdfplumber==0.11.4
 pytesseract==0.3.13

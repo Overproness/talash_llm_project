@@ -141,12 +141,24 @@ async def is_ollama_available() -> bool:
 # ── Extraction prompt ─────────────────────────────────────────────────────────
 
 _SYSTEM = (
-    "You are an expert CV/resume parser. Extract all structured information "
-    "from the provided CV text and return ONLY a valid JSON object matching "
-    "the schema. Use empty strings or empty arrays for missing fields."
+    "You are an expert CV/resume parser specializing in academic and professional CVs. "
+    "You are given raw text extracted from a PDF — it may include table cell content "
+    "merged on single lines or listed consecutively. Extract ALL structured information "
+    "accurately and return ONLY a valid JSON object matching the schema. "
+    "Use empty strings or empty arrays for missing fields. Never invent data."
 )
 
 _EXTRACTION_PROMPT = """Extract structured CV data from the following text and return a valid JSON object.
+
+IMPORTANT PARSING RULES:
+- The text is from a structured/table-based academic CV. Row data from tables is often concatenated.
+- For Education: extract each degree separately with its specialization, grade/GPA/%, passing year, and university/board.
+- For Experience: extract each job role with organization, location, and date range (e.g. "Jan-2012 - Aug-2015").
+- For Publications: extract each paper/article separately with its title, authors, publication venue, impact factor, volume, pages, and year.
+- For the candidate's name: look for the full name at the top of the document (e.g. "MUHAMMAD SALMAN QAMAR").
+- marks_or_cgpa: capture the raw value exactly as written (e.g. "3.33", "69.84", "65.45%").
+- employment_type for academic roles (Lecturer, Professor, etc.) should be "Teaching".
+- pub_type: use "journal" for journal papers, "conference" for conference papers.
 
 CV TEXT:
 {cv_text}

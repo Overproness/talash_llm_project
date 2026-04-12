@@ -12,3 +12,7 @@ __pycache__/
 *.txt
 
 .next/
+
+cv_uploads/
+processed/
+data/

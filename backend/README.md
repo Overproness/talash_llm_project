@@ -83,22 +83,22 @@ Interactive docs: `http://localhost:8000/docs`
 
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/health` | Health check and LLM status |
-| `POST` | `/api/upload` | Upload a PDF CV for parsing |
-| `GET` | `/api/candidates` | List all candidates (paginated) |
-| `GET` | `/api/candidates/{id}` | Get full candidate profile |
-| `GET` | `/api/settings` | Get current LLM provider settings |
+| Method | Path                     | Description                               |
+| ------ | ------------------------ | ----------------------------------------- |
+| `GET`  | `/api/health`            | Health check and LLM status               |
+| `POST` | `/api/upload`            | Upload a PDF CV for parsing               |
+| `GET`  | `/api/candidates`        | List all candidates (paginated)           |
+| `GET`  | `/api/candidates/{id}`   | Get full candidate profile                |
+| `GET`  | `/api/settings`          | Get current LLM provider settings         |
 | `POST` | `/api/settings/provider` | Switch the active LLM provider at runtime |
 
 ### Query Parameters — `GET /api/candidates`
 
-| Param | Default | Description |
-|-------|---------|-------------|
-| `skip` | `0` | Number of records to skip |
-| `limit` | `50` | Max records to return (max 200) |
-| `status` | — | Filter by processing status (`processing`, `done`, `error`) |
+| Param    | Default | Description                                                 |
+| -------- | ------- | ----------------------------------------------------------- |
+| `skip`   | `0`     | Number of records to skip                                   |
+| `limit`  | `50`    | Max records to return (max 200)                             |
+| `status` | —       | Filter by processing status (`processing`, `done`, `error`) |
 
 ## Running Tests
 

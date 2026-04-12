@@ -1,8 +1,0 @@
-{
-    "rewrites": [
-        {
-            "source": "/api/:path*",
-            "destination": "https://talash-llm-project.onrender.com/api/:path*"
-        }
-    ]
-}

@@ -7,12 +7,26 @@ import { CandidateListItem, DashboardStats } from "@/lib/types";
 import { useEffect, useState } from "react";
 
 const BAR_COLORS = [
-  "bg-primary", "bg-emerald-500", "bg-blue-500", "bg-violet-500",
-  "bg-amber-500", "bg-rose-500", "bg-cyan-500", "bg-indigo-500",
-  "bg-pink-500", "bg-teal-500",
+  "bg-primary",
+  "bg-emerald-500",
+  "bg-blue-500",
+  "bg-violet-500",
+  "bg-amber-500",
+  "bg-rose-500",
+  "bg-cyan-500",
+  "bg-indigo-500",
+  "bg-pink-500",
+  "bg-teal-500",
 ];
 
-const PIE_COLORS = ["#6366f1", "#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ef4444"];
+const PIE_COLORS = [
+  "#6366f1",
+  "#10b981",
+  "#3b82f6",
+  "#8b5cf6",
+  "#f59e0b",
+  "#ef4444",
+];
 
 export default function DashboardPage() {
   const [candidates, setCandidates] = useState<CandidateListItem[]>([]);
@@ -34,11 +48,13 @@ export default function DashboardPage() {
 
   // Helpers for charts
   const eduLevels = stats ? Object.entries(stats.education_levels) : [];
-  const eduMax = eduLevels.length > 0 ? Math.max(...eduLevels.map(([, v]) => v), 1) : 1;
+  const eduMax =
+    eduLevels.length > 0 ? Math.max(...eduLevels.map(([, v]) => v), 1) : 1;
   const pubTypes = stats ? Object.entries(stats.publication_types) : [];
   const pubTotal = pubTypes.reduce((s, [, v]) => s + v, 0) || 1;
   const topSkills = stats?.top_skills?.slice(0, 10) ?? [];
-  const skillMax = topSkills.length > 0 ? Math.max(...topSkills.map((s) => s.count), 1) : 1;
+  const skillMax =
+    topSkills.length > 0 ? Math.max(...topSkills.map((s) => s.count), 1) : 1;
 
   return (
     <div className="flex min-h-screen bg-surface">
@@ -126,7 +142,9 @@ export default function DashboardPage() {
                   {eduLevels.map(([level, count], i) => (
                     <div key={level}>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-on-surface capitalize font-medium">{level}</span>
+                        <span className="text-on-surface capitalize font-medium">
+                          {level}
+                        </span>
                         <span className="text-on-surface-variant">{count}</span>
                       </div>
                       <div className="w-full h-3 rounded-full bg-surface-container">
@@ -150,7 +168,10 @@ export default function DashboardPage() {
                 <p className="text-sm text-on-surface-variant">No data yet</p>
               ) : (
                 <div className="flex items-center gap-8">
-                  <svg viewBox="0 0 120 120" className="w-32 h-32 flex-shrink-0">
+                  <svg
+                    viewBox="0 0 120 120"
+                    className="w-32 h-32 flex-shrink-0"
+                  >
                     {(() => {
                       let cumulative = 0;
                       return pubTypes.map(([type, count], i) => {
@@ -158,10 +179,16 @@ export default function DashboardPage() {
                         const startAngle = cumulative * 360;
                         cumulative += pct;
                         const endAngle = cumulative * 360;
-                        const x1 = 60 + 50 * Math.cos(((startAngle - 90) * Math.PI) / 180);
-                        const y1 = 60 + 50 * Math.sin(((startAngle - 90) * Math.PI) / 180);
-                        const x2 = 60 + 50 * Math.cos(((endAngle - 90) * Math.PI) / 180);
-                        const y2 = 60 + 50 * Math.sin(((endAngle - 90) * Math.PI) / 180);
+                        const x1 =
+                          60 +
+                          50 * Math.cos(((startAngle - 90) * Math.PI) / 180);
+                        const y1 =
+                          60 +
+                          50 * Math.sin(((startAngle - 90) * Math.PI) / 180);
+                        const x2 =
+                          60 + 50 * Math.cos(((endAngle - 90) * Math.PI) / 180);
+                        const y2 =
+                          60 + 50 * Math.sin(((endAngle - 90) * Math.PI) / 180);
                         const largeArc = pct > 0.5 ? 1 : 0;
                         return (
                           <path
@@ -172,17 +199,38 @@ export default function DashboardPage() {
                         );
                       });
                     })()}
-                    <circle cx="60" cy="60" r="25" fill="var(--md-sys-color-surface-container-lowest, #fff)" />
-                    <text x="60" y="64" textAnchor="middle" fontSize="14" fontWeight="bold" fill="currentColor">
+                    <circle
+                      cx="60"
+                      cy="60"
+                      r="25"
+                      fill="var(--md-sys-color-surface-container-lowest, #fff)"
+                    />
+                    <text
+                      x="60"
+                      y="64"
+                      textAnchor="middle"
+                      fontSize="14"
+                      fontWeight="bold"
+                      fill="currentColor"
+                    >
                       {pubTypes.reduce((s, [, v]) => s + v, 0)}
                     </text>
                   </svg>
                   <div className="space-y-2">
                     {pubTypes.map(([type, count], i) => (
                       <div key={type} className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
-                        <span className="text-sm text-on-surface capitalize">{type}</span>
-                        <span className="text-xs text-on-surface-variant">({count})</span>
+                        <div
+                          className="w-3 h-3 rounded-sm"
+                          style={{
+                            backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
+                          }}
+                        />
+                        <span className="text-sm text-on-surface capitalize">
+                          {type}
+                        </span>
+                        <span className="text-xs text-on-surface-variant">
+                          ({count})
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -204,14 +252,18 @@ export default function DashboardPage() {
                 <div className="space-y-2">
                   {topSkills.map((s, i) => (
                     <div key={s.skill} className="flex items-center gap-3">
-                      <span className="text-xs text-on-surface-variant w-28 truncate text-right">{s.skill}</span>
+                      <span className="text-xs text-on-surface-variant w-28 truncate text-right">
+                        {s.skill}
+                      </span>
                       <div className="flex-1 h-4 rounded-full bg-surface-container">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${BAR_COLORS[i % BAR_COLORS.length]}`}
                           style={{ width: `${(s.count / skillMax) * 100}%` }}
                         />
                       </div>
-                      <span className="text-xs font-semibold text-on-surface w-6 text-right">{s.count}</span>
+                      <span className="text-xs font-semibold text-on-surface w-6 text-right">
+                        {s.count}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -229,12 +281,19 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   {stats.score_data.slice(0, 6).map((sd) => (
                     <div key={sd.name} className="space-y-1">
-                      <p className="text-xs font-medium text-on-surface truncate">{sd.name}</p>
+                      <p className="text-xs font-medium text-on-surface truncate">
+                        {sd.name}
+                      </p>
                       <div className="flex gap-1 items-center">
                         <div className="flex-1 h-2 rounded-full bg-surface-container">
-                          <div className="h-full rounded-full bg-primary" style={{ width: `${sd.overall_score ?? 0}%` }} />
+                          <div
+                            className="h-full rounded-full bg-primary"
+                            style={{ width: `${sd.overall_score ?? 0}%` }}
+                          />
                         </div>
-                        <span className="text-[10px] text-on-surface-variant w-6 text-right">{sd.overall_score ?? "—"}</span>
+                        <span className="text-[10px] text-on-surface-variant w-6 text-right">
+                          {sd.overall_score ?? "—"}
+                        </span>
                       </div>
                       <div className="flex gap-4 text-[10px] text-on-surface-variant">
                         <span>Edu: {sd.education_score ?? "—"}</span>

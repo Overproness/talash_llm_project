@@ -73,7 +73,8 @@ export default function EmailDraftsPage() {
               Email Drafts
             </h1>
             <p className="text-on-surface-variant mt-1 text-sm">
-              LLM-powered personalized emails for candidates with missing information
+              LLM-powered personalized emails for candidates with missing
+              information
             </p>
           </div>
 
@@ -155,11 +156,18 @@ export default function EmailDraftsPage() {
                             {/* Email header */}
                             <div className="bg-surface-container rounded-t-xl px-5 py-3 flex items-center gap-6">
                               <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-                                <span className="material-symbols-outlined text-sm">person</span>
-                                <span>To: {draft.candidate_email || "No email on file"}</span>
+                                <span className="material-symbols-outlined text-sm">
+                                  person
+                                </span>
+                                <span>
+                                  To:{" "}
+                                  {draft.candidate_email || "No email on file"}
+                                </span>
                               </div>
                               <div className="flex items-center gap-2 text-xs font-medium text-on-surface">
-                                <span className="material-symbols-outlined text-sm">subject</span>
+                                <span className="material-symbols-outlined text-sm">
+                                  subject
+                                </span>
                                 <span>{draft.subject}</span>
                               </div>
                             </div>

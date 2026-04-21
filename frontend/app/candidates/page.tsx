@@ -174,20 +174,28 @@ export default function CandidatesPage() {
                       </td>
                       <td className="px-4 py-4 text-center">
                         {c.education_score != null ? (
-                          <span className={`text-xs font-bold ${c.education_score >= 70 ? "text-emerald-600" : c.education_score >= 40 ? "text-amber-600" : "text-on-surface-variant"}`}>
+                          <span
+                            className={`text-xs font-bold ${c.education_score >= 70 ? "text-emerald-600" : c.education_score >= 40 ? "text-amber-600" : "text-on-surface-variant"}`}
+                          >
                             {c.education_score}
                           </span>
                         ) : (
-                          <span className="text-on-surface-variant text-xs">—</span>
+                          <span className="text-on-surface-variant text-xs">
+                            —
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-4 text-center">
                         {c.experience_score != null ? (
-                          <span className={`text-xs font-bold ${c.experience_score >= 70 ? "text-emerald-600" : c.experience_score >= 40 ? "text-amber-600" : "text-on-surface-variant"}`}>
+                          <span
+                            className={`text-xs font-bold ${c.experience_score >= 70 ? "text-emerald-600" : c.experience_score >= 40 ? "text-amber-600" : "text-on-surface-variant"}`}
+                          >
                             {c.experience_score}
                           </span>
                         ) : (
-                          <span className="text-on-surface-variant text-xs">—</span>
+                          <span className="text-on-surface-variant text-xs">
+                            —
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-4 text-right">

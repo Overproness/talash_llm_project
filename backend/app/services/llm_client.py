@@ -159,6 +159,7 @@ IMPORTANT PARSING RULES:
 - marks_or_cgpa: capture the raw value exactly as written (e.g. "3.33", "69.84", "65.45%").
 - employment_type for academic roles (Lecturer, Professor, etc.) should be "Teaching".
 - pub_type: use "journal" for journal papers, "conference" for conference papers.
+- For skills: If there is an explicit "Skills" or "Technical Skills" section, extract those items. If no such section exists, INFER technical skills from: (1) education specialization fields (e.g. "Wireless Communication, Convex Optimization" → ["Wireless Communication", "Convex Optimization"]), (2) publication titles and topics (e.g. papers about "NOMA", "5G", "Machine Learning" → add those as skills), (3) job responsibilities. Always populate the skills array — never leave it empty if any technical content exists in the CV.
 
 CV TEXT:
 {cv_text}
@@ -270,4 +271,51 @@ async def extract_with_llm(cv_text: str) -> dict:
     except json.JSONDecodeError as exc:
         logger.error("Provider %s returned invalid JSON: %s", provider, exc)
         raise
+
+
+async def extract_with_llm_custom(system_prompt: str, user_prompt: str) -> dict:
+    """
+    Generic LLM call with custom system/user prompts. Returns parsed JSON.
+    Used by analysis modules (education, experience, email, summary).
+    """
+    provider = get_active_provider()
+    llm = get_llm()
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_prompt[:12000]),
+    ]
+
+    logger.info("Custom LLM call: provider=%s model=%s", provider, get_active_model())
+    response = await llm.ainvoke(messages)
+    raw: str = response.content
+
+    if "```json" in raw:
+        raw = raw.split("```json", 1)[1].split("```", 1)[0].strip()
+    elif "```" in raw:
+        raw = raw.split("```", 1)[1].split("```", 1)[0].strip()
+
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError as exc:
+        logger.error("Custom LLM call returned invalid JSON: %s", exc)
+        raise
+
+
+async def generate_with_llm_text(system_prompt: str, user_prompt: str) -> str:
+    """
+    Generic LLM call that returns plain text (not JSON).
+    Used for email drafting and summary generation.
+    """
+    provider = get_active_provider()
+    llm = get_llm()
+
+    messages = [
+        SystemMessage(content=system_prompt),
+        HumanMessage(content=user_prompt[:12000]),
+    ]
+
+    logger.info("Text LLM call: provider=%s model=%s", provider, get_active_model())
+    response = await llm.ainvoke(messages)
+    return response.content.strip()
 

@@ -90,6 +90,12 @@ export default function CandidatesPage() {
                   <th className="px-4 py-4 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
                     Missing
                   </th>
+                  <th className="px-4 py-4 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                    Edu
+                  </th>
+                  <th className="px-4 py-4 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                    Exp
+                  </th>
                   <th className="px-4 py-4 text-right text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
                     Score
                   </th>
@@ -100,7 +106,7 @@ export default function CandidatesPage() {
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={9}
                       className="px-6 py-12 text-center text-on-surface-variant"
                     >
                       <span className="material-symbols-outlined animate-spin text-primary">
@@ -111,7 +117,7 @@ export default function CandidatesPage() {
                 ) : filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={9}
                       className="px-6 py-12 text-center text-on-surface-variant"
                     >
                       <span className="block text-3xl mb-2">📂</span>
@@ -164,6 +170,24 @@ export default function CandidatesPage() {
                           <span className="text-emerald-600 material-symbols-outlined text-sm">
                             check_circle
                           </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        {c.education_score != null ? (
+                          <span className={`text-xs font-bold ${c.education_score >= 70 ? "text-emerald-600" : c.education_score >= 40 ? "text-amber-600" : "text-on-surface-variant"}`}>
+                            {c.education_score}
+                          </span>
+                        ) : (
+                          <span className="text-on-surface-variant text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        {c.experience_score != null ? (
+                          <span className={`text-xs font-bold ${c.experience_score >= 70 ? "text-emerald-600" : c.experience_score >= 40 ? "text-amber-600" : "text-on-surface-variant"}`}>
+                            {c.experience_score}
+                          </span>
+                        ) : (
+                          <span className="text-on-surface-variant text-xs">—</span>
                         )}
                       </td>
                       <td className="px-4 py-4 text-right">

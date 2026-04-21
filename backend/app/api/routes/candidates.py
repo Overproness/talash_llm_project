@@ -17,6 +17,8 @@ router = APIRouter()
 
 def _doc_to_list_item(doc: dict) -> CandidateListItem:
     pi = doc.get("personal_info", {})
+    edu_analysis = doc.get("education_analysis", {})
+    exp_analysis = doc.get("experience_analysis", {})
     return CandidateListItem(
         id=str(doc["_id"]),
         name=pi.get("name", "") or doc.get("filename", "Unknown"),
@@ -24,6 +26,8 @@ def _doc_to_list_item(doc: dict) -> CandidateListItem:
         uploaded_at=doc.get("uploaded_at"),
         processing_status=doc.get("processing_status", "unknown"),
         overall_score=doc.get("overall_score"),
+        education_score=edu_analysis.get("education_score") if isinstance(edu_analysis, dict) else None,
+        experience_score=exp_analysis.get("experience_score") if isinstance(exp_analysis, dict) else None,
         skills_count=len(doc.get("skills", [])),
         publications_count=len(doc.get("publications", [])),
         missing_fields_count=len(doc.get("missing_fields", [])),

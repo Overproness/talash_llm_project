@@ -14,6 +14,7 @@ type Tab =
   | "experience"
   | "publications"
   | "skills"
+  | "analysis"
   | "raw";
 
 export default function CandidateProfilePage() {
@@ -21,6 +22,7 @@ export default function CandidateProfilePage() {
   const router = useRouter();
   const [candidate, setCandidate] = useState<CandidateFull | null>(null);
   const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
 
   useEffect(() => {
@@ -31,6 +33,20 @@ export default function CandidateProfilePage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleReanalyze = async () => {
+    if (!id) return;
+    setAnalyzing(true);
+    try {
+      await api.analyzeCandidate(id);
+      const updated = await api.getCandidate(id);
+      setCandidate(updated);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   if (loading)
     return (
@@ -69,13 +85,18 @@ export default function CandidateProfilePage() {
         .toUpperCase()
     : candidate.filename.slice(0, 2).toUpperCase();
 
-  const TABS: { key: Tab; label: string }[] = [
-    { key: "overview", label: "Overview" },
-    { key: "education", label: "Education" },
-    { key: "experience", label: "Experience" },
-    { key: "publications", label: "Publications" },
-    { key: "skills", label: "Skills" },
-    { key: "raw", label: "Raw CV" },
+  const eduAnalysis = candidate.education_analysis;
+  const expAnalysis = candidate.experience_analysis;
+  const researchSummary = candidate.research_summary;
+
+  const TABS: { key: Tab; label: string; icon: string }[] = [
+    { key: "overview", label: "Overview", icon: "dashboard" },
+    { key: "education", label: "Education", icon: "school" },
+    { key: "experience", label: "Experience", icon: "work" },
+    { key: "publications", label: "Publications", icon: "article" },
+    { key: "skills", label: "Skills", icon: "psychology" },
+    { key: "analysis", label: "Analysis", icon: "analytics" },
+    { key: "raw", label: "Raw CV", icon: "description" },
   ];
 
   return (
@@ -150,8 +171,8 @@ export default function CandidateProfilePage() {
                 <div className="flex gap-2 mt-2">
                   <span className="text-[10px] bg-primary-fixed text-on-primary-fixed px-2 py-1 rounded-full font-bold">
                     {candidate.extraction_method === "llm"
-                      ? "🤖 LLM Extracted"
-                      : "⚙️ Rule-based"}
+                      ? "LLM Extracted"
+                      : "Rule-based"}
                   </span>
                   <span className="text-[10px] bg-surface-container text-on-surface-variant px-2 py-1 rounded-full">
                     {candidate.education.length} education records
@@ -174,15 +195,76 @@ export default function CandidateProfilePage() {
                 </div>
               )}
               <div className="flex gap-3">
-                <button className="px-5 py-2 rounded-lg border border-outline-variant text-on-surface-variant font-semibold text-sm hover:bg-surface-container-low transition-all">
-                  Export PDF
+                <button
+                  onClick={handleReanalyze}
+                  disabled={analyzing}
+                  className="px-5 py-2 rounded-lg border border-outline-variant text-on-surface-variant font-semibold text-sm hover:bg-surface-container-low transition-all disabled:opacity-50"
+                >
+                  {analyzing ? "Analyzing..." : "Re-analyze"}
                 </button>
-                <button className="px-5 py-2 rounded-lg primary-gradient text-white font-semibold text-sm shadow-md">
+                <Link
+                  href="/email-drafts"
+                  className="px-5 py-2 rounded-lg primary-gradient text-white font-semibold text-sm shadow-md inline-flex items-center"
+                >
                   Draft Email
-                </button>
+                </Link>
               </div>
             </div>
           </section>
+
+          {/* Summary */}
+          {candidate.summary && (
+            <section className="bg-surface-container-lowest p-6 rounded-2xl shadow-sm">
+              <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">
+                Candidate Summary
+              </h3>
+              <p className="text-sm text-on-surface leading-relaxed">
+                {candidate.summary}
+              </p>
+            </section>
+          )}
+
+          {/* Score cards row */}
+          {(eduAnalysis?.education_score != null || expAnalysis?.experience_score != null) && (
+            <div className="grid grid-cols-4 gap-4">
+              {candidate.overall_score != null && (
+                <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
+                  <span className="text-[10px] text-outline uppercase tracking-widest">Overall</span>
+                  <div className="text-3xl font-bold text-primary mt-1">{candidate.overall_score}</div>
+                  <div className="w-full h-1.5 rounded-full bg-surface-container mt-3">
+                    <div className="h-full rounded-full primary-gradient" style={{ width: `${candidate.overall_score}%` }} />
+                  </div>
+                </div>
+              )}
+              {eduAnalysis?.education_score != null && (
+                <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
+                  <span className="text-[10px] text-outline uppercase tracking-widest">Education</span>
+                  <div className="text-3xl font-bold text-emerald-600 mt-1">{eduAnalysis.education_score}</div>
+                  <div className="w-full h-1.5 rounded-full bg-surface-container mt-3">
+                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${eduAnalysis.education_score}%` }} />
+                  </div>
+                </div>
+              )}
+              {expAnalysis?.experience_score != null && (
+                <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
+                  <span className="text-[10px] text-outline uppercase tracking-widest">Experience</span>
+                  <div className="text-3xl font-bold text-blue-600 mt-1">{expAnalysis.experience_score}</div>
+                  <div className="w-full h-1.5 rounded-full bg-surface-container mt-3">
+                    <div className="h-full rounded-full bg-blue-500" style={{ width: `${expAnalysis.experience_score}%` }} />
+                  </div>
+                </div>
+              )}
+              {researchSummary && researchSummary.total_publications > 0 && (
+                <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
+                  <span className="text-[10px] text-outline uppercase tracking-widest">Publications</span>
+                  <div className="text-3xl font-bold text-violet-600 mt-1">{researchSummary.total_publications}</div>
+                  <p className="text-[10px] text-on-surface-variant mt-1">
+                    {researchSummary.journal_count}J / {researchSummary.conference_count}C
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Tab nav */}
           <nav className="flex gap-6 border-b border-outline-variant/20">
@@ -190,12 +272,13 @@ export default function CandidateProfilePage() {
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`pb-4 font-medium text-sm transition-colors ${
+                className={`pb-4 font-medium text-sm transition-colors flex items-center gap-2 ${
                   tab === t.key
                     ? "text-primary border-b-2 border-primary -mb-px font-bold"
                     : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
+                <span className="material-symbols-outlined text-base">{t.icon}</span>
                 {t.label}
               </button>
             ))}
@@ -210,48 +293,19 @@ export default function CandidateProfilePage() {
                   Profile Summary
                 </h3>
                 <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-on-surface-variant">
-                      Education Records
-                    </span>
-                    <span className="font-semibold">
-                      {candidate.education.length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-on-surface-variant">
-                      Experience Records
-                    </span>
-                    <span className="font-semibold">
-                      {candidate.experience.length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-on-surface-variant">
-                      Publications
-                    </span>
-                    <span className="font-semibold">
-                      {candidate.publications.length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-on-surface-variant">Skills</span>
-                    <span className="font-semibold">
-                      {candidate.skills.length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-on-surface-variant">Books</span>
-                    <span className="font-semibold">
-                      {candidate.books.length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-on-surface-variant">Patents</span>
-                    <span className="font-semibold">
-                      {candidate.patents.length}
-                    </span>
-                  </div>
+                  {[
+                    { label: "Education Records", value: candidate.education.length },
+                    { label: "Experience Records", value: candidate.experience.length },
+                    { label: "Publications", value: candidate.publications.length },
+                    { label: "Skills", value: candidate.skills.length },
+                    { label: "Books", value: candidate.books.length },
+                    { label: "Patents", value: candidate.patents.length },
+                  ].map((item) => (
+                    <div key={item.label} className="flex justify-between text-sm">
+                      <span className="text-on-surface-variant">{item.label}</span>
+                      <span className="font-semibold">{item.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -315,144 +369,313 @@ export default function CandidateProfilePage() {
 
           {tab === "education" && (
             <div className="space-y-4">
+              {/* Education analysis summary */}
+              {eduAnalysis && (
+                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-4">
+                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">
+                    Education Analysis
+                  </h3>
+                  <div className="grid grid-cols-4 gap-4 mb-4">
+                    <div className="bg-surface-container rounded-lg p-3">
+                      <span className="text-[10px] text-outline uppercase">Highest Qual.</span>
+                      <p className="font-bold text-on-surface">{eduAnalysis.highest_qualification || "—"}</p>
+                    </div>
+                    <div className="bg-surface-container rounded-lg p-3">
+                      <span className="text-[10px] text-outline uppercase">Performance</span>
+                      <p className="font-bold text-on-surface capitalize">{eduAnalysis.performance_trend || "—"}</p>
+                    </div>
+                    <div className="bg-surface-container rounded-lg p-3">
+                      <span className="text-[10px] text-outline uppercase">Specialization</span>
+                      <p className="font-bold text-on-surface capitalize">{eduAnalysis.specialization_consistency || "—"}</p>
+                    </div>
+                    <div className="bg-surface-container rounded-lg p-3">
+                      <span className="text-[10px] text-outline uppercase">Score</span>
+                      <p className="font-bold text-primary">{eduAnalysis.education_score ?? "—"}/100</p>
+                    </div>
+                  </div>
+                  {eduAnalysis.overall_assessment && (
+                    <p className="text-sm text-on-surface-variant leading-relaxed">
+                      {eduAnalysis.overall_assessment}
+                    </p>
+                  )}
+                  {/* Education gaps */}
+                  {eduAnalysis.education_gaps.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">
+                        Educational Gaps
+                      </h4>
+                      <div className="space-y-2">
+                        {eduAnalysis.education_gaps.map((gap, i) => (
+                          <div key={i} className={`rounded-lg p-3 text-sm ${gap.justified ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+                            <div className="flex items-center gap-2">
+                              <span className={`material-symbols-outlined text-sm ${gap.justified ? "text-emerald-600" : "text-amber-600"}`}>
+                                {gap.justified ? "check_circle" : "warning"}
+                              </span>
+                              <span className="font-medium">
+                                {gap.from_level} → {gap.to_level}: {gap.gap_years} year(s) gap ({gap.from_year}–{gap.to_year})
+                              </span>
+                            </div>
+                            <p className="text-xs text-on-surface-variant mt-1 ml-6">{gap.justification}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Education records table */}
               {candidate.education.length === 0 ? (
                 <p className="text-on-surface-variant text-sm">
                   No education records found.
                 </p>
               ) : (
-                candidate.education.map((edu, i) => (
-                  <div
-                    key={i}
-                    className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="text-[10px] bg-primary-fixed text-on-primary-fixed font-bold px-2 py-0.5 rounded-full uppercase">
-                          {edu.level}
-                        </span>
-                        <h3 className="font-semibold text-on-surface mt-2">
-                          {edu.degree}
-                        </h3>
-                        {edu.specialization && (
-                          <p className="text-sm text-on-surface-variant">
-                            {edu.specialization}
-                          </p>
-                        )}
-                        <p className="text-sm text-on-surface-variant mt-1">
-                          {edu.institution || "Institution not specified"}
-                        </p>
-                        {edu.board_or_affiliation && (
-                          <p className="text-xs text-outline">
-                            {edu.board_or_affiliation}
-                          </p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-on-surface-variant">
-                          {edu.start_year} — {edu.end_year ?? "Present"}
-                        </p>
-                        {edu.marks_or_cgpa && (
-                          <p className="text-sm font-semibold text-on-surface mt-1">
-                            {edu.marks_or_cgpa}
-                          </p>
-                        )}
-                        {edu.normalized_score != null && (
-                          <p className="text-xs text-outline">
-                            Normalized: {edu.normalized_score.toFixed(1)}%
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
+                <div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-surface-container">
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Level</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Degree</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Institution</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Years</th>
+                        <th className="text-right px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Marks/CGPA</th>
+                        <th className="text-right px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Normalized</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {candidate.education.map((edu, i) => (
+                        <tr key={i} className="border-t border-outline-variant/10">
+                          <td className="px-5 py-3">
+                            <span className="text-[10px] bg-primary-fixed text-on-primary-fixed font-bold px-2 py-0.5 rounded-full uppercase">
+                              {edu.level}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <p className="font-medium text-on-surface">{edu.degree}</p>
+                            {edu.specialization && <p className="text-xs text-on-surface-variant">{edu.specialization}</p>}
+                          </td>
+                          <td className="px-5 py-3 text-on-surface-variant">{edu.institution || "—"}</td>
+                          <td className="px-5 py-3 text-on-surface-variant">{edu.start_year ?? "?"} — {edu.end_year ?? "?"}</td>
+                          <td className="px-5 py-3 text-right font-medium text-on-surface">{edu.marks_or_cgpa || "—"}</td>
+                          <td className="px-5 py-3 text-right">
+                            {edu.normalized_score != null ? (
+                              <span className={`font-bold ${edu.normalized_score >= 70 ? "text-emerald-600" : edu.normalized_score >= 50 ? "text-amber-600" : "text-error"}`}>
+                                {edu.normalized_score.toFixed(1)}%
+                              </span>
+                            ) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}
 
           {tab === "experience" && (
             <div className="space-y-4">
+              {/* Experience analysis summary */}
+              {expAnalysis && (
+                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-4">
+                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">
+                    Experience Analysis
+                  </h3>
+                  <div className="grid grid-cols-4 gap-4 mb-4">
+                    <div className="bg-surface-container rounded-lg p-3">
+                      <span className="text-[10px] text-outline uppercase">Total Years</span>
+                      <p className="font-bold text-on-surface">{expAnalysis.total_experience_years ?? "—"}</p>
+                    </div>
+                    <div className="bg-surface-container rounded-lg p-3">
+                      <span className="text-[10px] text-outline uppercase">Trajectory</span>
+                      <p className="font-bold text-on-surface capitalize">{expAnalysis.career_trajectory || "—"}</p>
+                    </div>
+                    <div className="bg-surface-container rounded-lg p-3">
+                      <span className="text-[10px] text-outline uppercase">Consistency</span>
+                      <p className="font-bold text-on-surface capitalize">{expAnalysis.experience_consistency || "—"}</p>
+                    </div>
+                    <div className="bg-surface-container rounded-lg p-3">
+                      <span className="text-[10px] text-outline uppercase">Score</span>
+                      <p className="font-bold text-primary">{expAnalysis.experience_score ?? "—"}/100</p>
+                    </div>
+                  </div>
+                  {expAnalysis.overall_assessment && (
+                    <p className="text-sm text-on-surface-variant leading-relaxed">
+                      {expAnalysis.overall_assessment}
+                    </p>
+                  )}
+
+                  {/* Timeline overlaps */}
+                  {expAnalysis.timeline_overlaps.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">
+                        Timeline Overlaps
+                      </h4>
+                      <div className="space-y-2">
+                        {expAnalysis.timeline_overlaps.map((overlap, i) => (
+                          <div key={i} className={`rounded-lg p-3 text-sm ${overlap.assessment === "legitimate" ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+                            <div className="flex items-center gap-2">
+                              <span className={`material-symbols-outlined text-sm ${overlap.assessment === "legitimate" ? "text-emerald-600" : "text-amber-600"}`}>
+                                {overlap.assessment === "legitimate" ? "check_circle" : "schedule"}
+                              </span>
+                              <span className="font-medium capitalize">{overlap.type}</span>
+                              <span className="text-xs text-on-surface-variant">— {overlap.overlap_period}</span>
+                            </div>
+                            <p className="text-xs text-on-surface-variant mt-1 ml-6">{overlap.item_a} ↔ {overlap.item_b}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Experience gaps */}
+                  {expAnalysis.experience_gaps.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-2">
+                        Professional Gaps
+                      </h4>
+                      <div className="space-y-2">
+                        {expAnalysis.experience_gaps.map((gap, i) => (
+                          <div key={i} className={`rounded-lg p-3 text-sm ${gap.justified ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+                            <div className="flex items-center gap-2">
+                              <span className={`material-symbols-outlined text-sm ${gap.justified ? "text-emerald-600" : "text-amber-600"}`}>
+                                {gap.justified ? "check_circle" : "warning"}
+                              </span>
+                              <span className="font-medium">{gap.gap_months} month(s) gap</span>
+                              <span className="text-xs text-on-surface-variant">({gap.from_date} → {gap.to_date})</span>
+                            </div>
+                            <p className="text-xs text-on-surface-variant mt-1 ml-6">{gap.justification}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Experience records table */}
               {candidate.experience.length === 0 ? (
                 <p className="text-on-surface-variant text-sm">
                   No experience records found.
                 </p>
               ) : (
-                candidate.experience.map((exp, i) => (
-                  <div
-                    key={i}
-                    className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-on-surface">
-                          {exp.title}
-                        </h3>
-                        <p className="text-sm text-on-surface-variant">
-                          {exp.organization}
-                        </p>
-                        {exp.employment_type && (
-                          <span className="text-[10px] bg-surface-container text-on-surface-variant font-medium px-2 py-0.5 rounded-full mt-1 inline-block">
-                            {exp.employment_type}
-                          </span>
-                        )}
-                        {exp.description && (
-                          <p className="text-xs text-on-surface-variant mt-2">
-                            {exp.description.slice(0, 200)}
-                          </p>
-                        )}
-                      </div>
-                      <p className="text-sm text-on-surface-variant text-right">
-                        {exp.start_date} — {exp.end_date || "Present"}
-                      </p>
-                    </div>
-                  </div>
-                ))
+                <div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-surface-container">
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Role</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Organization</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Type</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Period</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {candidate.experience.map((exp, i) => (
+                        <tr key={i} className="border-t border-outline-variant/10">
+                          <td className="px-5 py-3">
+                            <p className="font-medium text-on-surface">{exp.title}</p>
+                            {exp.description && <p className="text-xs text-on-surface-variant mt-1">{exp.description.slice(0, 120)}</p>}
+                          </td>
+                          <td className="px-5 py-3 text-on-surface-variant">{exp.organization || "—"}</td>
+                          <td className="px-5 py-3">
+                            {exp.employment_type && (
+                              <span className="text-[10px] bg-surface-container text-on-surface-variant font-medium px-2 py-0.5 rounded-full">
+                                {exp.employment_type}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3 text-on-surface-variant whitespace-nowrap">{exp.start_date} — {exp.end_date || "Present"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}
 
           {tab === "publications" && (
             <div className="space-y-3">
+              {/* Research summary */}
+              {researchSummary && researchSummary.total_publications > 0 && (
+                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-4">
+                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">
+                    Research Profile Summary
+                  </h3>
+                  <div className="grid grid-cols-5 gap-4 mb-4">
+                    <div className="bg-surface-container rounded-lg p-3 text-center">
+                      <span className="text-2xl font-bold text-primary">{researchSummary.total_publications}</span>
+                      <p className="text-[10px] text-outline uppercase">Total</p>
+                    </div>
+                    <div className="bg-surface-container rounded-lg p-3 text-center">
+                      <span className="text-2xl font-bold text-emerald-600">{researchSummary.journal_count}</span>
+                      <p className="text-[10px] text-outline uppercase">Journal</p>
+                    </div>
+                    <div className="bg-surface-container rounded-lg p-3 text-center">
+                      <span className="text-2xl font-bold text-blue-600">{researchSummary.conference_count}</span>
+                      <p className="text-[10px] text-outline uppercase">Conference</p>
+                    </div>
+                    <div className="bg-surface-container rounded-lg p-3 text-center">
+                      <span className="text-2xl font-bold text-violet-600">{researchSummary.book_chapter_count}</span>
+                      <p className="text-[10px] text-outline uppercase">Book Ch.</p>
+                    </div>
+                    <div className="bg-surface-container rounded-lg p-3 text-center">
+                      <span className="text-sm font-bold text-on-surface">{researchSummary.publication_years_range}</span>
+                      <p className="text-[10px] text-outline uppercase">Years</p>
+                    </div>
+                  </div>
+                  {researchSummary.primary_research_areas.length > 0 && (
+                    <div className="flex gap-2 flex-wrap mb-3">
+                      {researchSummary.primary_research_areas.map((area, i) => (
+                        <span key={i} className="text-[11px] bg-primary-fixed text-on-primary-fixed px-2 py-1 rounded-full font-medium capitalize">
+                          {area}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-sm text-on-surface-variant">{researchSummary.overall_assessment}</p>
+                </div>
+              )}
+
+              {/* Publications table */}
               {candidate.publications.length === 0 ? (
                 <p className="text-on-surface-variant text-sm">
                   No publications found.
                 </p>
               ) : (
-                candidate.publications.map((pub, i) => (
-                  <div
-                    key={i}
-                    className="bg-surface-container-lowest rounded-xl px-5 py-4 shadow-sm"
-                  >
-                    <div className="flex items-start gap-4">
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase flex-shrink-0 ${pub.pub_type === "journal" ? "bg-primary-fixed text-on-primary-fixed" : "bg-tertiary-fixed text-on-tertiary-fixed"}`}
-                      >
-                        {pub.pub_type}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-on-surface">
-                          {pub.title}
-                        </p>
-                        {pub.venue && (
-                          <p className="text-xs text-on-surface-variant mt-1">
-                            {pub.venue}
-                          </p>
-                        )}
-                        <div className="flex gap-3 mt-1">
-                          {pub.year && (
-                            <span className="text-[11px] text-outline">
-                              {pub.year}
+                <div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-surface-container">
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest w-16">Type</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Title</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Venue</th>
+                        <th className="text-center px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Year</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">DOI</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {candidate.publications.map((pub, i) => (
+                        <tr key={i} className="border-t border-outline-variant/10">
+                          <td className="px-5 py-3">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${pub.pub_type === "journal" ? "bg-primary-fixed text-on-primary-fixed" : "bg-tertiary-fixed text-on-tertiary-fixed"}`}>
+                              {pub.pub_type}
                             </span>
-                          )}
-                          {pub.doi && (
-                            <span className="text-[11px] text-primary">
-                              {pub.doi}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
+                          </td>
+                          <td className="px-5 py-3">
+                            <p className="font-medium text-on-surface">{pub.title}</p>
+                            {pub.authors.length > 0 && (
+                              <p className="text-[11px] text-on-surface-variant mt-0.5">{pub.authors.join(", ")}</p>
+                            )}
+                          </td>
+                          <td className="px-5 py-3 text-on-surface-variant text-xs">{pub.venue || "—"}</td>
+                          <td className="px-5 py-3 text-center text-on-surface">{pub.year || "—"}</td>
+                          <td className="px-5 py-3 text-xs text-primary">{pub.doi || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}
@@ -478,6 +701,121 @@ export default function CandidateProfilePage() {
             </div>
           )}
 
+          {tab === "analysis" && (
+            <div className="space-y-6">
+              {/* Detailed missing info */}
+              {candidate.missing_info_detailed && candidate.missing_info_detailed.length > 0 && (
+                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
+                    Missing Information Details
+                  </h3>
+                  <div className="space-y-2">
+                    {candidate.missing_info_detailed.map((item, i) => (
+                      <div key={i} className={`flex items-center gap-3 p-3 rounded-lg ${
+                        item.severity === "critical" ? "bg-red-50 border border-red-200" :
+                        item.severity === "high" ? "bg-amber-50 border border-amber-200" :
+                        item.severity === "medium" ? "bg-yellow-50 border border-yellow-200" :
+                        "bg-surface-container"
+                      }`}>
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                          item.severity === "critical" ? "bg-red-200 text-red-800" :
+                          item.severity === "high" ? "bg-amber-200 text-amber-800" :
+                          item.severity === "medium" ? "bg-yellow-200 text-yellow-800" :
+                          "bg-surface-container-high text-on-surface-variant"
+                        }`}>
+                          {item.severity}
+                        </span>
+                        <span className="text-sm text-on-surface">{item.description}</span>
+                        <span className="text-xs text-on-surface-variant ml-auto">{item.field}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Education analysis full */}
+              {eduAnalysis && (
+                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
+                    Educational Profile Assessment
+                  </h3>
+                  <p className="text-sm text-on-surface leading-relaxed">{eduAnalysis.overall_assessment}</p>
+                  {eduAnalysis.institution_quality.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-xs font-bold text-on-surface-variant uppercase mb-2">Institution Quality</h4>
+                      <div className="space-y-1">
+                        {eduAnalysis.institution_quality.map((iq, i) => (
+                          <div key={i} className="flex justify-between text-sm py-1">
+                            <span className="text-on-surface">{iq.institution} ({iq.level})</span>
+                            <span className="text-on-surface-variant text-xs">{iq.ranking_info}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Experience analysis full */}
+              {expAnalysis && (
+                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
+                    Professional Experience Assessment
+                  </h3>
+                  <p className="text-sm text-on-surface leading-relaxed">{expAnalysis.overall_assessment}</p>
+                  {expAnalysis.career_progression.length > 0 && (
+                    <div className="mt-4">
+                      <h4 className="text-xs font-bold text-on-surface-variant uppercase mb-2">Career Progression</h4>
+                      <div className="space-y-2">
+                        {expAnalysis.career_progression.map((cp, i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: cp.seniority_level }, (_, j) => (
+                                <div key={j} className="w-2 h-2 rounded-full bg-primary" />
+                              ))}
+                              {Array.from({ length: 5 - cp.seniority_level }, (_, j) => (
+                                <div key={j} className="w-2 h-2 rounded-full bg-surface-container-high" />
+                              ))}
+                            </div>
+                            <span className="text-sm font-medium text-on-surface">{cp.title}</span>
+                            <span className="text-xs text-on-surface-variant">at {cp.organization}</span>
+                            <span className="text-xs text-outline ml-auto">{cp.period}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Research summary */}
+              {researchSummary && researchSummary.total_publications > 0 && (
+                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
+                    Research Summary
+                  </h3>
+                  <p className="text-sm text-on-surface leading-relaxed">{researchSummary.overall_assessment}</p>
+                </div>
+              )}
+
+              {!eduAnalysis && !expAnalysis && (
+                <div className="bg-surface-container-lowest rounded-2xl p-12 text-center shadow-sm">
+                  <span className="material-symbols-outlined text-4xl text-outline mb-3 block">
+                    analytics
+                  </span>
+                  <h3 className="font-semibold text-on-surface mb-1">No analysis available yet</h3>
+                  <p className="text-sm text-on-surface-variant mb-4">
+                    Click &quot;Re-analyze&quot; to run the full analysis pipeline.
+                  </p>
+                  <button onClick={handleReanalyze} disabled={analyzing}
+                    className="px-6 py-2 rounded-lg primary-gradient text-white font-semibold text-sm shadow-md disabled:opacity-50">
+                    {analyzing ? "Analyzing..." : "Run Analysis"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {tab === "raw" && (
             <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
               <pre className="text-xs text-on-surface-variant whitespace-pre-wrap font-mono max-h-96 overflow-y-auto">
@@ -490,3 +828,4 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
+

@@ -348,7 +348,8 @@ def detect_missing_fields(doc: CandidateDocument) -> list[str]:
         for i, edu in enumerate(doc.education):
             if not edu.marks_or_cgpa:
                 missing.append(f"education[{i}].marks_or_cgpa")
-            if not edu.institution:
+            # For HSSC/SSC, board_or_affiliation often serves as the institution
+            if not edu.institution and not edu.board_or_affiliation:
                 missing.append(f"education[{i}].institution")
     if not doc.experience:
         missing.append("experience")
@@ -358,6 +359,50 @@ def detect_missing_fields(doc: CandidateDocument) -> list[str]:
         if not pub.venue:
             missing.append(f"publications[{i}].venue")
     return missing
+
+
+# ─── Skills inference fallback ──────────────────────────────────────────────
+
+def _infer_skills_from_content(doc: CandidateDocument) -> list[str]:
+    """Derive technical skills from education specializations and publication topics
+    when no dedicated Skills section was found in the CV."""
+    inferred: list[str] = []
+    seen: set[str] = set()
+
+    def _add(term: str) -> None:
+        t = term.strip()
+        if 2 < len(t) < 60 and t.lower() not in seen:
+            seen.add(t.lower())
+            inferred.append(t)
+
+    # From education specializations
+    for edu in doc.education:
+        if edu.specialization:
+            for part in re.split(r"[,/;]+", edu.specialization):
+                _add(part.strip())
+
+    # From publication titles — extract noun phrases that look like techniques/topics
+    _TECH_STOPWORDS = {
+        "a", "an", "the", "of", "in", "on", "for", "with", "and", "or", "to",
+        "using", "based", "via", "by", "from", "into", "its", "their", "this",
+        "novel", "new", "improved", "efficient", "hybrid", "joint", "adaptive",
+        "approach", "method", "framework", "system", "scheme", "technique",
+        "paper", "study", "analysis", "survey", "review", "towards",
+    }
+    _TECH_TERMS_RE = re.compile(
+        r"\b(NOMA|OFDMA?|MIMO|LTE|5G|6G|HetNets?|IoT|WSN|ANN|CNN|RNN|LSTM|"
+        r"machine learning|deep learning|neural network|reinforcement learning|"
+        r"wireless communication|signal processing|resource allocation|"
+        r"convex optimization|beamforming|spectrum|backhaul|satellite|"
+        r"Python|MATLAB|C\+\+|Java|TensorFlow|PyTorch|Keras|Simulink|"
+        r"antenna|radar|image processing|computer vision|NLP|data mining)\b",
+        re.IGNORECASE,
+    )
+    for pub in doc.publications:
+        for m in _TECH_TERMS_RE.finditer(pub.title):
+            _add(m.group(0))
+
+    return inferred[:30]
 
 
 # ─── CSV export ───────────────────────────────────────────────────────────────
@@ -473,7 +518,7 @@ async def parse_cv(pdf_path: str, processed_dir: str) -> CandidateDocument:
 
     experience = [ExperienceRecord(**e) for e in extracted.get("experience", []) if isinstance(e, dict)]
     publications = [Publication(**p) for p in extracted.get("publications", []) if isinstance(p, dict)]
-    skills = [s for s in extracted.get("skills", []) if isinstance(s, str)]
+    skills = [s for s in extracted.get("skills", []) if isinstance(s, str) and s.strip()]
     books = [Book(**b) for b in extracted.get("books", []) if isinstance(b, dict)]
     patents = [Patent(**p) for p in extracted.get("patents", []) if isinstance(p, dict)]
     supervision = [Supervision(**s) for s in extracted.get("supervision", []) if isinstance(s, dict)]
@@ -493,6 +538,12 @@ async def parse_cv(pdf_path: str, processed_dir: str) -> CandidateDocument:
         patents=patents,
         supervision=supervision,
     )
+
+    # Step 3b — Infer skills from content if LLM returned none
+    if not doc.skills:
+        doc.skills = _infer_skills_from_content(doc)
+        if doc.skills:
+            logger.info(f"Inferred {len(doc.skills)} skills from content for {filename}")
 
     # Step 4 — Missing field detection
     doc.missing_fields = detect_missing_fields(doc)

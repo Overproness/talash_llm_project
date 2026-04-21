@@ -6,6 +6,7 @@ import logging
 from app.core.config import get_settings
 from app.core.database import connect_db, close_db
 from app.api.routes import upload, candidates, health, settings as settings_routes
+from app.api.routes import analysis
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ app.include_router(health.router, prefix=PREFIX, tags=["health"])
 app.include_router(upload.router, prefix=PREFIX, tags=["upload"])
 app.include_router(candidates.router, prefix=PREFIX, tags=["candidates"])
 app.include_router(settings_routes.router, prefix=PREFIX, tags=["settings"])
+app.include_router(analysis.router, prefix=PREFIX, tags=["analysis"])
 
 
 @app.get("/")

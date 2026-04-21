@@ -13,6 +13,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.models.candidate import CandidateDocument, UploadResponse
 from app.services.cv_parser import parse_cv
+from app.services.candidate_analyzer import run_full_analysis
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -84,8 +85,21 @@ async def upload_cv(
             {"_id": ObjectId(candidate_id)},
             {"$set": update_data},
         )
+
+        # M2: Run full analysis pipeline (education, experience, research, summary)
+        try:
+            analysis_results = await run_full_analysis(parsed)
+            await db.candidates.update_one(
+                {"_id": ObjectId(candidate_id)},
+                {"$set": analysis_results},
+            )
+            logger.info(f"Analysis completed for {dest_path}")
+        except Exception as ae:
+            logger.warning(f"Analysis failed for {dest_path} (parsing still succeeded): {ae}")
+
         status = "done"
-        message = f"CV parsed successfully. Found {len(parsed.education)} education records, {len(parsed.publications)} publications."
+        score_info = f" Overall score: {analysis_results.get('overall_score', 'N/A')}." if 'analysis_results' in dir() else ""
+        message = f"CV parsed and analyzed successfully. Found {len(parsed.education)} education records, {len(parsed.publications)} publications.{score_info}"
     except Exception as e:
         logger.error(f"Parsing failed for {dest_path}: {e}")
         await db.candidates.update_one(

@@ -1,4 +1,4 @@
-import { CandidateFull, CandidateListItem, UploadResponse } from './types'
+import { CandidateFull, CandidateListItem, DashboardStats, EmailDraft, UploadResponse } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL
   ? `${process.env.NEXT_PUBLIC_API_URL}/api`
@@ -63,4 +63,23 @@ export const api = {
         body: JSON.stringify({ provider, model }),
       }
     ),
+
+  // Milestone 2: Analysis endpoints
+  analyzeCandidate: (id: string) =>
+    request<{ message: string; candidate_id: string; overall_score: number | null; summary: string }>(
+      `/candidates/${id}/analyze`,
+      { method: 'POST' }
+    ),
+
+  getEmailDraft: (id: string) =>
+    request<{
+      candidate_id: string
+      has_missing_info: boolean
+      email_draft: EmailDraft | null
+      missing_count?: number
+      message?: string
+    }>(`/candidates/${id}/email-draft`, { method: 'POST' }),
+
+  getDashboardStats: () =>
+    request<DashboardStats>('/dashboard/stats'),
 }

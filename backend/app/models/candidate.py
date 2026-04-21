@@ -71,6 +71,88 @@ class Supervision(BaseModel):
     thesis_title: str = ""
 
 
+# ─── Analysis sub-models (Milestone 2) ───────────────────────────────────────
+
+class EducationGap(BaseModel):
+    from_level: str = ""
+    to_level: str = ""
+    from_year: Optional[int] = None
+    to_year: Optional[int] = None
+    gap_years: Optional[float] = None
+    justified: bool = False
+    justification: str = ""
+
+
+class EducationAnalysis(BaseModel):
+    """Results of educational profile analysis (Module 3.1)."""
+    academic_performance: list[dict] = []         # per-level summary (level, score, institution)
+    performance_trend: str = ""                    # improving / declining / stable / mixed
+    highest_qualification: str = ""
+    specialization_consistency: str = ""           # consistent / varied / unrelated
+    institution_quality: list[dict] = []           # institution, ranking_info
+    education_gaps: list[EducationGap] = []
+    gap_justifications: list[str] = []
+    overall_assessment: str = ""
+    education_score: Optional[float] = None        # 0-100
+
+
+class ExperienceGap(BaseModel):
+    from_role: str = ""
+    to_role: str = ""
+    from_date: str = ""
+    to_date: str = ""
+    gap_months: Optional[int] = None
+    justified: bool = False
+    justification: str = ""
+
+
+class TimelineOverlap(BaseModel):
+    type: str = ""        # education-employment / job-job
+    item_a: str = ""
+    item_b: str = ""
+    overlap_period: str = ""
+    assessment: str = ""  # legitimate / suspicious / needs_clarification
+
+
+class ExperienceAnalysis(BaseModel):
+    """Results of professional experience analysis (Module 3.8)."""
+    total_experience_years: Optional[float] = None
+    career_trajectory: str = ""             # ascending / lateral / mixed / descending
+    current_role: str = ""
+    experience_gaps: list[ExperienceGap] = []
+    timeline_overlaps: list[TimelineOverlap] = []
+    career_progression: list[dict] = []     # ordered list of roles with analysis
+    experience_consistency: str = ""        # consistent / inconsistent / varied
+    overall_assessment: str = ""
+    experience_score: Optional[float] = None  # 0-100
+
+
+class ResearchProfileSummary(BaseModel):
+    """Partial research profile analysis (Module 3.2 partial for M2)."""
+    total_publications: int = 0
+    journal_count: int = 0
+    conference_count: int = 0
+    book_chapter_count: int = 0
+    publication_years_range: str = ""
+    primary_research_areas: list[str] = []
+    publication_trend: str = ""       # increasing / stable / decreasing
+    overall_assessment: str = ""
+
+
+class MissingInfoItem(BaseModel):
+    field: str = ""
+    description: str = ""
+    severity: str = "medium"   # low / medium / high / critical
+
+
+class EmailDraft(BaseModel):
+    candidate_name: str = ""
+    candidate_email: str = ""
+    subject: str = ""
+    body: str = ""
+    missing_items: list[str] = []
+
+
 # ─── Main candidate document ─────────────────────────────────────────────────
 
 class CandidateDocument(BaseModel):
@@ -97,8 +179,12 @@ class CandidateDocument(BaseModel):
     patents: list[Patent] = []
     supervision: list[Supervision] = []
 
-    # Analysis results (populated in later milestones)
+    # Analysis results (Milestone 2)
     missing_fields: list[str] = []
+    missing_info_detailed: list[MissingInfoItem] = []
+    education_analysis: Optional[EducationAnalysis] = None
+    experience_analysis: Optional[ExperienceAnalysis] = None
+    research_summary: Optional[ResearchProfileSummary] = None
     overall_score: Optional[float] = None
     summary: str = ""
 
@@ -112,6 +198,8 @@ class CandidateListItem(BaseModel):
     uploaded_at: datetime
     processing_status: str
     overall_score: Optional[float]
+    education_score: Optional[float] = None
+    experience_score: Optional[float] = None
     skills_count: int
     publications_count: int
     missing_fields_count: int

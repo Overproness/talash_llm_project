@@ -225,41 +225,68 @@ export default function CandidateProfilePage() {
           )}
 
           {/* Score cards row */}
-          {(eduAnalysis?.education_score != null || expAnalysis?.experience_score != null) && (
+          {(eduAnalysis?.education_score != null ||
+            expAnalysis?.experience_score != null) && (
             <div className="grid grid-cols-4 gap-4">
               {candidate.overall_score != null && (
                 <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
-                  <span className="text-[10px] text-outline uppercase tracking-widest">Overall</span>
-                  <div className="text-3xl font-bold text-primary mt-1">{candidate.overall_score}</div>
+                  <span className="text-[10px] text-outline uppercase tracking-widest">
+                    Overall
+                  </span>
+                  <div className="text-3xl font-bold text-primary mt-1">
+                    {candidate.overall_score}
+                  </div>
                   <div className="w-full h-1.5 rounded-full bg-surface-container mt-3">
-                    <div className="h-full rounded-full primary-gradient" style={{ width: `${candidate.overall_score}%` }} />
+                    <div
+                      className="h-full rounded-full primary-gradient"
+                      style={{ width: `${candidate.overall_score}%` }}
+                    />
                   </div>
                 </div>
               )}
               {eduAnalysis?.education_score != null && (
                 <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
-                  <span className="text-[10px] text-outline uppercase tracking-widest">Education</span>
-                  <div className="text-3xl font-bold text-emerald-600 mt-1">{eduAnalysis.education_score}</div>
+                  <span className="text-[10px] text-outline uppercase tracking-widest">
+                    Education
+                  </span>
+                  <div className="text-3xl font-bold text-emerald-600 mt-1">
+                    {eduAnalysis.education_score}
+                  </div>
                   <div className="w-full h-1.5 rounded-full bg-surface-container mt-3">
-                    <div className="h-full rounded-full bg-emerald-500" style={{ width: `${eduAnalysis.education_score}%` }} />
+                    <div
+                      className="h-full rounded-full bg-emerald-500"
+                      style={{ width: `${eduAnalysis.education_score}%` }}
+                    />
                   </div>
                 </div>
               )}
               {expAnalysis?.experience_score != null && (
                 <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
-                  <span className="text-[10px] text-outline uppercase tracking-widest">Experience</span>
-                  <div className="text-3xl font-bold text-blue-600 mt-1">{expAnalysis.experience_score}</div>
+                  <span className="text-[10px] text-outline uppercase tracking-widest">
+                    Experience
+                  </span>
+                  <div className="text-3xl font-bold text-blue-600 mt-1">
+                    {expAnalysis.experience_score}
+                  </div>
                   <div className="w-full h-1.5 rounded-full bg-surface-container mt-3">
-                    <div className="h-full rounded-full bg-blue-500" style={{ width: `${expAnalysis.experience_score}%` }} />
+                    <div
+                      className="h-full rounded-full bg-blue-500"
+                      style={{ width: `${expAnalysis.experience_score}%` }}
+                    />
                   </div>
                 </div>
               )}
               {researchSummary && researchSummary.total_publications > 0 && (
                 <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
-                  <span className="text-[10px] text-outline uppercase tracking-widest">Publications</span>
-                  <div className="text-3xl font-bold text-violet-600 mt-1">{researchSummary.total_publications}</div>
+                  <span className="text-[10px] text-outline uppercase tracking-widest">
+                    Publications
+                  </span>
+                  <div className="text-3xl font-bold text-violet-600 mt-1">
+                    {researchSummary.total_publications}
+                  </div>
                   <p className="text-[10px] text-on-surface-variant mt-1">
-                    {researchSummary.journal_count}J / {researchSummary.conference_count}C
+                    {researchSummary.journal_count}J /{" "}
+                    {researchSummary.conference_count}C
                   </p>
                 </div>
               )}
@@ -278,7 +305,9 @@ export default function CandidateProfilePage() {
                     : "text-on-surface-variant hover:text-on-surface"
                 }`}
               >
-                <span className="material-symbols-outlined text-base">{t.icon}</span>
+                <span className="material-symbols-outlined text-base">
+                  {t.icon}
+                </span>
                 {t.label}
               </button>
             ))}
@@ -294,15 +323,29 @@ export default function CandidateProfilePage() {
                 </h3>
                 <div className="space-y-3">
                   {[
-                    { label: "Education Records", value: candidate.education.length },
-                    { label: "Experience Records", value: candidate.experience.length },
-                    { label: "Publications", value: candidate.publications.length },
+                    {
+                      label: "Education Records",
+                      value: candidate.education.length,
+                    },
+                    {
+                      label: "Experience Records",
+                      value: candidate.experience.length,
+                    },
+                    {
+                      label: "Publications",
+                      value: candidate.publications.length,
+                    },
                     { label: "Skills", value: candidate.skills.length },
                     { label: "Books", value: candidate.books.length },
                     { label: "Patents", value: candidate.patents.length },
                   ].map((item) => (
-                    <div key={item.label} className="flex justify-between text-sm">
-                      <span className="text-on-surface-variant">{item.label}</span>
+                    <div
+                      key={item.label}
+                      className="flex justify-between text-sm"
+                    >
+                      <span className="text-on-surface-variant">
+                        {item.label}
+                      </span>
                       <span className="font-semibold">{item.value}</span>
                     </div>
                   ))}
@@ -377,20 +420,36 @@ export default function CandidateProfilePage() {
                   </h3>
                   <div className="grid grid-cols-4 gap-4 mb-4">
                     <div className="bg-surface-container rounded-lg p-3">
-                      <span className="text-[10px] text-outline uppercase">Highest Qual.</span>
-                      <p className="font-bold text-on-surface">{eduAnalysis.highest_qualification || "—"}</p>
+                      <span className="text-[10px] text-outline uppercase">
+                        Highest Qual.
+                      </span>
+                      <p className="font-bold text-on-surface">
+                        {eduAnalysis.highest_qualification || "—"}
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3">
-                      <span className="text-[10px] text-outline uppercase">Performance</span>
-                      <p className="font-bold text-on-surface capitalize">{eduAnalysis.performance_trend || "—"}</p>
+                      <span className="text-[10px] text-outline uppercase">
+                        Performance
+                      </span>
+                      <p className="font-bold text-on-surface capitalize">
+                        {eduAnalysis.performance_trend || "—"}
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3">
-                      <span className="text-[10px] text-outline uppercase">Specialization</span>
-                      <p className="font-bold text-on-surface capitalize">{eduAnalysis.specialization_consistency || "—"}</p>
+                      <span className="text-[10px] text-outline uppercase">
+                        Specialization
+                      </span>
+                      <p className="font-bold text-on-surface capitalize">
+                        {eduAnalysis.specialization_consistency || "—"}
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3">
-                      <span className="text-[10px] text-outline uppercase">Score</span>
-                      <p className="font-bold text-primary">{eduAnalysis.education_score ?? "—"}/100</p>
+                      <span className="text-[10px] text-outline uppercase">
+                        Score
+                      </span>
+                      <p className="font-bold text-primary">
+                        {eduAnalysis.education_score ?? "—"}/100
+                      </p>
                     </div>
                   </div>
                   {eduAnalysis.overall_assessment && (
@@ -406,16 +465,25 @@ export default function CandidateProfilePage() {
                       </h4>
                       <div className="space-y-2">
                         {eduAnalysis.education_gaps.map((gap, i) => (
-                          <div key={i} className={`rounded-lg p-3 text-sm ${gap.justified ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+                          <div
+                            key={i}
+                            className={`rounded-lg p-3 text-sm ${gap.justified ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}
+                          >
                             <div className="flex items-center gap-2">
-                              <span className={`material-symbols-outlined text-sm ${gap.justified ? "text-emerald-600" : "text-amber-600"}`}>
+                              <span
+                                className={`material-symbols-outlined text-sm ${gap.justified ? "text-emerald-600" : "text-amber-600"}`}
+                              >
                                 {gap.justified ? "check_circle" : "warning"}
                               </span>
                               <span className="font-medium">
-                                {gap.from_level} → {gap.to_level}: {gap.gap_years} year(s) gap ({gap.from_year}–{gap.to_year})
+                                {gap.from_level} → {gap.to_level}:{" "}
+                                {gap.gap_years} year(s) gap ({gap.from_year}–
+                                {gap.to_year})
                               </span>
                             </div>
-                            <p className="text-xs text-on-surface-variant mt-1 ml-6">{gap.justification}</p>
+                            <p className="text-xs text-on-surface-variant mt-1 ml-6">
+                              {gap.justification}
+                            </p>
                           </div>
                         ))}
                       </div>
@@ -434,35 +502,66 @@ export default function CandidateProfilePage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-surface-container">
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Level</th>
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Degree</th>
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Institution</th>
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Years</th>
-                        <th className="text-right px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Marks/CGPA</th>
-                        <th className="text-right px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Normalized</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Level
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Degree
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Institution
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Years
+                        </th>
+                        <th className="text-right px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Marks/CGPA
+                        </th>
+                        <th className="text-right px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Normalized
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {candidate.education.map((edu, i) => (
-                        <tr key={i} className="border-t border-outline-variant/10">
+                        <tr
+                          key={i}
+                          className="border-t border-outline-variant/10"
+                        >
                           <td className="px-5 py-3">
                             <span className="text-[10px] bg-primary-fixed text-on-primary-fixed font-bold px-2 py-0.5 rounded-full uppercase">
                               {edu.level}
                             </span>
                           </td>
                           <td className="px-5 py-3">
-                            <p className="font-medium text-on-surface">{edu.degree}</p>
-                            {edu.specialization && <p className="text-xs text-on-surface-variant">{edu.specialization}</p>}
+                            <p className="font-medium text-on-surface">
+                              {edu.degree}
+                            </p>
+                            {edu.specialization && (
+                              <p className="text-xs text-on-surface-variant">
+                                {edu.specialization}
+                              </p>
+                            )}
                           </td>
-                          <td className="px-5 py-3 text-on-surface-variant">{edu.institution || "—"}</td>
-                          <td className="px-5 py-3 text-on-surface-variant">{edu.start_year ?? "?"} — {edu.end_year ?? "?"}</td>
-                          <td className="px-5 py-3 text-right font-medium text-on-surface">{edu.marks_or_cgpa || "—"}</td>
+                          <td className="px-5 py-3 text-on-surface-variant">
+                            {edu.institution || "—"}
+                          </td>
+                          <td className="px-5 py-3 text-on-surface-variant">
+                            {edu.start_year ?? "?"} — {edu.end_year ?? "?"}
+                          </td>
+                          <td className="px-5 py-3 text-right font-medium text-on-surface">
+                            {edu.marks_or_cgpa || "—"}
+                          </td>
                           <td className="px-5 py-3 text-right">
                             {edu.normalized_score != null ? (
-                              <span className={`font-bold ${edu.normalized_score >= 70 ? "text-emerald-600" : edu.normalized_score >= 50 ? "text-amber-600" : "text-error"}`}>
+                              <span
+                                className={`font-bold ${edu.normalized_score >= 70 ? "text-emerald-600" : edu.normalized_score >= 50 ? "text-amber-600" : "text-error"}`}
+                              >
                                 {edu.normalized_score.toFixed(1)}%
                               </span>
-                            ) : "—"}
+                            ) : (
+                              "—"
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -483,20 +582,36 @@ export default function CandidateProfilePage() {
                   </h3>
                   <div className="grid grid-cols-4 gap-4 mb-4">
                     <div className="bg-surface-container rounded-lg p-3">
-                      <span className="text-[10px] text-outline uppercase">Total Years</span>
-                      <p className="font-bold text-on-surface">{expAnalysis.total_experience_years ?? "—"}</p>
+                      <span className="text-[10px] text-outline uppercase">
+                        Total Years
+                      </span>
+                      <p className="font-bold text-on-surface">
+                        {expAnalysis.total_experience_years ?? "—"}
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3">
-                      <span className="text-[10px] text-outline uppercase">Trajectory</span>
-                      <p className="font-bold text-on-surface capitalize">{expAnalysis.career_trajectory || "—"}</p>
+                      <span className="text-[10px] text-outline uppercase">
+                        Trajectory
+                      </span>
+                      <p className="font-bold text-on-surface capitalize">
+                        {expAnalysis.career_trajectory || "—"}
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3">
-                      <span className="text-[10px] text-outline uppercase">Consistency</span>
-                      <p className="font-bold text-on-surface capitalize">{expAnalysis.experience_consistency || "—"}</p>
+                      <span className="text-[10px] text-outline uppercase">
+                        Consistency
+                      </span>
+                      <p className="font-bold text-on-surface capitalize">
+                        {expAnalysis.experience_consistency || "—"}
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3">
-                      <span className="text-[10px] text-outline uppercase">Score</span>
-                      <p className="font-bold text-primary">{expAnalysis.experience_score ?? "—"}/100</p>
+                      <span className="text-[10px] text-outline uppercase">
+                        Score
+                      </span>
+                      <p className="font-bold text-primary">
+                        {expAnalysis.experience_score ?? "—"}/100
+                      </p>
                     </div>
                   </div>
                   {expAnalysis.overall_assessment && (
@@ -513,15 +628,28 @@ export default function CandidateProfilePage() {
                       </h4>
                       <div className="space-y-2">
                         {expAnalysis.timeline_overlaps.map((overlap, i) => (
-                          <div key={i} className={`rounded-lg p-3 text-sm ${overlap.assessment === "legitimate" ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+                          <div
+                            key={i}
+                            className={`rounded-lg p-3 text-sm ${overlap.assessment === "legitimate" ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}
+                          >
                             <div className="flex items-center gap-2">
-                              <span className={`material-symbols-outlined text-sm ${overlap.assessment === "legitimate" ? "text-emerald-600" : "text-amber-600"}`}>
-                                {overlap.assessment === "legitimate" ? "check_circle" : "schedule"}
+                              <span
+                                className={`material-symbols-outlined text-sm ${overlap.assessment === "legitimate" ? "text-emerald-600" : "text-amber-600"}`}
+                              >
+                                {overlap.assessment === "legitimate"
+                                  ? "check_circle"
+                                  : "schedule"}
                               </span>
-                              <span className="font-medium capitalize">{overlap.type}</span>
-                              <span className="text-xs text-on-surface-variant">— {overlap.overlap_period}</span>
+                              <span className="font-medium capitalize">
+                                {overlap.type}
+                              </span>
+                              <span className="text-xs text-on-surface-variant">
+                                — {overlap.overlap_period}
+                              </span>
                             </div>
-                            <p className="text-xs text-on-surface-variant mt-1 ml-6">{overlap.item_a} ↔ {overlap.item_b}</p>
+                            <p className="text-xs text-on-surface-variant mt-1 ml-6">
+                              {overlap.item_a} ↔ {overlap.item_b}
+                            </p>
                           </div>
                         ))}
                       </div>
@@ -536,15 +664,26 @@ export default function CandidateProfilePage() {
                       </h4>
                       <div className="space-y-2">
                         {expAnalysis.experience_gaps.map((gap, i) => (
-                          <div key={i} className={`rounded-lg p-3 text-sm ${gap.justified ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+                          <div
+                            key={i}
+                            className={`rounded-lg p-3 text-sm ${gap.justified ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}
+                          >
                             <div className="flex items-center gap-2">
-                              <span className={`material-symbols-outlined text-sm ${gap.justified ? "text-emerald-600" : "text-amber-600"}`}>
+                              <span
+                                className={`material-symbols-outlined text-sm ${gap.justified ? "text-emerald-600" : "text-amber-600"}`}
+                              >
                                 {gap.justified ? "check_circle" : "warning"}
                               </span>
-                              <span className="font-medium">{gap.gap_months} month(s) gap</span>
-                              <span className="text-xs text-on-surface-variant">({gap.from_date} → {gap.to_date})</span>
+                              <span className="font-medium">
+                                {gap.gap_months} month(s) gap
+                              </span>
+                              <span className="text-xs text-on-surface-variant">
+                                ({gap.from_date} → {gap.to_date})
+                              </span>
                             </div>
-                            <p className="text-xs text-on-surface-variant mt-1 ml-6">{gap.justification}</p>
+                            <p className="text-xs text-on-surface-variant mt-1 ml-6">
+                              {gap.justification}
+                            </p>
                           </div>
                         ))}
                       </div>
@@ -563,20 +702,39 @@ export default function CandidateProfilePage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-surface-container">
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Role</th>
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Organization</th>
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Type</th>
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Period</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Role
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Organization
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Type
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Period
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {candidate.experience.map((exp, i) => (
-                        <tr key={i} className="border-t border-outline-variant/10">
+                        <tr
+                          key={i}
+                          className="border-t border-outline-variant/10"
+                        >
                           <td className="px-5 py-3">
-                            <p className="font-medium text-on-surface">{exp.title}</p>
-                            {exp.description && <p className="text-xs text-on-surface-variant mt-1">{exp.description.slice(0, 120)}</p>}
+                            <p className="font-medium text-on-surface">
+                              {exp.title}
+                            </p>
+                            {exp.description && (
+                              <p className="text-xs text-on-surface-variant mt-1">
+                                {exp.description.slice(0, 120)}
+                              </p>
+                            )}
                           </td>
-                          <td className="px-5 py-3 text-on-surface-variant">{exp.organization || "—"}</td>
+                          <td className="px-5 py-3 text-on-surface-variant">
+                            {exp.organization || "—"}
+                          </td>
                           <td className="px-5 py-3">
                             {exp.employment_type && (
                               <span className="text-[10px] bg-surface-container text-on-surface-variant font-medium px-2 py-0.5 rounded-full">
@@ -584,7 +742,9 @@ export default function CandidateProfilePage() {
                               </span>
                             )}
                           </td>
-                          <td className="px-5 py-3 text-on-surface-variant whitespace-nowrap">{exp.start_date} — {exp.end_date || "Present"}</td>
+                          <td className="px-5 py-3 text-on-surface-variant whitespace-nowrap">
+                            {exp.start_date} — {exp.end_date || "Present"}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -604,36 +764,61 @@ export default function CandidateProfilePage() {
                   </h3>
                   <div className="grid grid-cols-5 gap-4 mb-4">
                     <div className="bg-surface-container rounded-lg p-3 text-center">
-                      <span className="text-2xl font-bold text-primary">{researchSummary.total_publications}</span>
-                      <p className="text-[10px] text-outline uppercase">Total</p>
+                      <span className="text-2xl font-bold text-primary">
+                        {researchSummary.total_publications}
+                      </span>
+                      <p className="text-[10px] text-outline uppercase">
+                        Total
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3 text-center">
-                      <span className="text-2xl font-bold text-emerald-600">{researchSummary.journal_count}</span>
-                      <p className="text-[10px] text-outline uppercase">Journal</p>
+                      <span className="text-2xl font-bold text-emerald-600">
+                        {researchSummary.journal_count}
+                      </span>
+                      <p className="text-[10px] text-outline uppercase">
+                        Journal
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3 text-center">
-                      <span className="text-2xl font-bold text-blue-600">{researchSummary.conference_count}</span>
-                      <p className="text-[10px] text-outline uppercase">Conference</p>
+                      <span className="text-2xl font-bold text-blue-600">
+                        {researchSummary.conference_count}
+                      </span>
+                      <p className="text-[10px] text-outline uppercase">
+                        Conference
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3 text-center">
-                      <span className="text-2xl font-bold text-violet-600">{researchSummary.book_chapter_count}</span>
-                      <p className="text-[10px] text-outline uppercase">Book Ch.</p>
+                      <span className="text-2xl font-bold text-violet-600">
+                        {researchSummary.book_chapter_count}
+                      </span>
+                      <p className="text-[10px] text-outline uppercase">
+                        Book Ch.
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3 text-center">
-                      <span className="text-sm font-bold text-on-surface">{researchSummary.publication_years_range}</span>
-                      <p className="text-[10px] text-outline uppercase">Years</p>
+                      <span className="text-sm font-bold text-on-surface">
+                        {researchSummary.publication_years_range}
+                      </span>
+                      <p className="text-[10px] text-outline uppercase">
+                        Years
+                      </p>
                     </div>
                   </div>
                   {researchSummary.primary_research_areas.length > 0 && (
                     <div className="flex gap-2 flex-wrap mb-3">
                       {researchSummary.primary_research_areas.map((area, i) => (
-                        <span key={i} className="text-[11px] bg-primary-fixed text-on-primary-fixed px-2 py-1 rounded-full font-medium capitalize">
+                        <span
+                          key={i}
+                          className="text-[11px] bg-primary-fixed text-on-primary-fixed px-2 py-1 rounded-full font-medium capitalize"
+                        >
                           {area}
                         </span>
                       ))}
                     </div>
                   )}
-                  <p className="text-sm text-on-surface-variant">{researchSummary.overall_assessment}</p>
+                  <p className="text-sm text-on-surface-variant">
+                    {researchSummary.overall_assessment}
+                  </p>
                 </div>
               )}
 
@@ -647,30 +832,55 @@ export default function CandidateProfilePage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-surface-container">
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest w-16">Type</th>
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Title</th>
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Venue</th>
-                        <th className="text-center px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Year</th>
-                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">DOI</th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest w-16">
+                          Type
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Title
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Venue
+                        </th>
+                        <th className="text-center px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Year
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          DOI
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {candidate.publications.map((pub, i) => (
-                        <tr key={i} className="border-t border-outline-variant/10">
+                        <tr
+                          key={i}
+                          className="border-t border-outline-variant/10"
+                        >
                           <td className="px-5 py-3">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${pub.pub_type === "journal" ? "bg-primary-fixed text-on-primary-fixed" : "bg-tertiary-fixed text-on-tertiary-fixed"}`}>
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${pub.pub_type === "journal" ? "bg-primary-fixed text-on-primary-fixed" : "bg-tertiary-fixed text-on-tertiary-fixed"}`}
+                            >
                               {pub.pub_type}
                             </span>
                           </td>
                           <td className="px-5 py-3">
-                            <p className="font-medium text-on-surface">{pub.title}</p>
+                            <p className="font-medium text-on-surface">
+                              {pub.title}
+                            </p>
                             {pub.authors.length > 0 && (
-                              <p className="text-[11px] text-on-surface-variant mt-0.5">{pub.authors.join(", ")}</p>
+                              <p className="text-[11px] text-on-surface-variant mt-0.5">
+                                {pub.authors.join(", ")}
+                              </p>
                             )}
                           </td>
-                          <td className="px-5 py-3 text-on-surface-variant text-xs">{pub.venue || "—"}</td>
-                          <td className="px-5 py-3 text-center text-on-surface">{pub.year || "—"}</td>
-                          <td className="px-5 py-3 text-xs text-primary">{pub.doi || "—"}</td>
+                          <td className="px-5 py-3 text-on-surface-variant text-xs">
+                            {pub.venue || "—"}
+                          </td>
+                          <td className="px-5 py-3 text-center text-on-surface">
+                            {pub.year || "—"}
+                          </td>
+                          <td className="px-5 py-3 text-xs text-primary">
+                            {pub.doi || "—"}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -704,34 +914,50 @@ export default function CandidateProfilePage() {
           {tab === "analysis" && (
             <div className="space-y-6">
               {/* Detailed missing info */}
-              {candidate.missing_info_detailed && candidate.missing_info_detailed.length > 0 && (
-                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
-                    Missing Information Details
-                  </h3>
-                  <div className="space-y-2">
-                    {candidate.missing_info_detailed.map((item, i) => (
-                      <div key={i} className={`flex items-center gap-3 p-3 rounded-lg ${
-                        item.severity === "critical" ? "bg-red-50 border border-red-200" :
-                        item.severity === "high" ? "bg-amber-50 border border-amber-200" :
-                        item.severity === "medium" ? "bg-yellow-50 border border-yellow-200" :
-                        "bg-surface-container"
-                      }`}>
-                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
-                          item.severity === "critical" ? "bg-red-200 text-red-800" :
-                          item.severity === "high" ? "bg-amber-200 text-amber-800" :
-                          item.severity === "medium" ? "bg-yellow-200 text-yellow-800" :
-                          "bg-surface-container-high text-on-surface-variant"
-                        }`}>
-                          {item.severity}
-                        </span>
-                        <span className="text-sm text-on-surface">{item.description}</span>
-                        <span className="text-xs text-on-surface-variant ml-auto">{item.field}</span>
-                      </div>
-                    ))}
+              {candidate.missing_info_detailed &&
+                candidate.missing_info_detailed.length > 0 && (
+                  <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
+                      Missing Information Details
+                    </h3>
+                    <div className="space-y-2">
+                      {candidate.missing_info_detailed.map((item, i) => (
+                        <div
+                          key={i}
+                          className={`flex items-center gap-3 p-3 rounded-lg ${
+                            item.severity === "critical"
+                              ? "bg-red-50 border border-red-200"
+                              : item.severity === "high"
+                                ? "bg-amber-50 border border-amber-200"
+                                : item.severity === "medium"
+                                  ? "bg-yellow-50 border border-yellow-200"
+                                  : "bg-surface-container"
+                          }`}
+                        >
+                          <span
+                            className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                              item.severity === "critical"
+                                ? "bg-red-200 text-red-800"
+                                : item.severity === "high"
+                                  ? "bg-amber-200 text-amber-800"
+                                  : item.severity === "medium"
+                                    ? "bg-yellow-200 text-yellow-800"
+                                    : "bg-surface-container-high text-on-surface-variant"
+                            }`}
+                          >
+                            {item.severity}
+                          </span>
+                          <span className="text-sm text-on-surface">
+                            {item.description}
+                          </span>
+                          <span className="text-xs text-on-surface-variant ml-auto">
+                            {item.field}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Education analysis full */}
               {eduAnalysis && (
@@ -739,15 +965,26 @@ export default function CandidateProfilePage() {
                   <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
                     Educational Profile Assessment
                   </h3>
-                  <p className="text-sm text-on-surface leading-relaxed">{eduAnalysis.overall_assessment}</p>
+                  <p className="text-sm text-on-surface leading-relaxed">
+                    {eduAnalysis.overall_assessment}
+                  </p>
                   {eduAnalysis.institution_quality.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="text-xs font-bold text-on-surface-variant uppercase mb-2">Institution Quality</h4>
+                      <h4 className="text-xs font-bold text-on-surface-variant uppercase mb-2">
+                        Institution Quality
+                      </h4>
                       <div className="space-y-1">
                         {eduAnalysis.institution_quality.map((iq, i) => (
-                          <div key={i} className="flex justify-between text-sm py-1">
-                            <span className="text-on-surface">{iq.institution} ({iq.level})</span>
-                            <span className="text-on-surface-variant text-xs">{iq.ranking_info}</span>
+                          <div
+                            key={i}
+                            className="flex justify-between text-sm py-1"
+                          >
+                            <span className="text-on-surface">
+                              {iq.institution} ({iq.level})
+                            </span>
+                            <span className="text-on-surface-variant text-xs">
+                              {iq.ranking_info}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -762,24 +999,46 @@ export default function CandidateProfilePage() {
                   <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
                     Professional Experience Assessment
                   </h3>
-                  <p className="text-sm text-on-surface leading-relaxed">{expAnalysis.overall_assessment}</p>
+                  <p className="text-sm text-on-surface leading-relaxed">
+                    {expAnalysis.overall_assessment}
+                  </p>
                   {expAnalysis.career_progression.length > 0 && (
                     <div className="mt-4">
-                      <h4 className="text-xs font-bold text-on-surface-variant uppercase mb-2">Career Progression</h4>
+                      <h4 className="text-xs font-bold text-on-surface-variant uppercase mb-2">
+                        Career Progression
+                      </h4>
                       <div className="space-y-2">
                         {expAnalysis.career_progression.map((cp, i) => (
                           <div key={i} className="flex items-center gap-3">
                             <div className="flex items-center gap-1">
-                              {Array.from({ length: cp.seniority_level }, (_, j) => (
-                                <div key={j} className="w-2 h-2 rounded-full bg-primary" />
-                              ))}
-                              {Array.from({ length: 5 - cp.seniority_level }, (_, j) => (
-                                <div key={j} className="w-2 h-2 rounded-full bg-surface-container-high" />
-                              ))}
+                              {Array.from(
+                                { length: cp.seniority_level },
+                                (_, j) => (
+                                  <div
+                                    key={j}
+                                    className="w-2 h-2 rounded-full bg-primary"
+                                  />
+                                ),
+                              )}
+                              {Array.from(
+                                { length: 5 - cp.seniority_level },
+                                (_, j) => (
+                                  <div
+                                    key={j}
+                                    className="w-2 h-2 rounded-full bg-surface-container-high"
+                                  />
+                                ),
+                              )}
                             </div>
-                            <span className="text-sm font-medium text-on-surface">{cp.title}</span>
-                            <span className="text-xs text-on-surface-variant">at {cp.organization}</span>
-                            <span className="text-xs text-outline ml-auto">{cp.period}</span>
+                            <span className="text-sm font-medium text-on-surface">
+                              {cp.title}
+                            </span>
+                            <span className="text-xs text-on-surface-variant">
+                              at {cp.organization}
+                            </span>
+                            <span className="text-xs text-outline ml-auto">
+                              {cp.period}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -794,7 +1053,9 @@ export default function CandidateProfilePage() {
                   <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
                     Research Summary
                   </h3>
-                  <p className="text-sm text-on-surface leading-relaxed">{researchSummary.overall_assessment}</p>
+                  <p className="text-sm text-on-surface leading-relaxed">
+                    {researchSummary.overall_assessment}
+                  </p>
                 </div>
               )}
 
@@ -803,12 +1064,18 @@ export default function CandidateProfilePage() {
                   <span className="material-symbols-outlined text-4xl text-outline mb-3 block">
                     analytics
                   </span>
-                  <h3 className="font-semibold text-on-surface mb-1">No analysis available yet</h3>
+                  <h3 className="font-semibold text-on-surface mb-1">
+                    No analysis available yet
+                  </h3>
                   <p className="text-sm text-on-surface-variant mb-4">
-                    Click &quot;Re-analyze&quot; to run the full analysis pipeline.
+                    Click &quot;Re-analyze&quot; to run the full analysis
+                    pipeline.
                   </p>
-                  <button onClick={handleReanalyze} disabled={analyzing}
-                    className="px-6 py-2 rounded-lg primary-gradient text-white font-semibold text-sm shadow-md disabled:opacity-50">
+                  <button
+                    onClick={handleReanalyze}
+                    disabled={analyzing}
+                    className="px-6 py-2 rounded-lg primary-gradient text-white font-semibold text-sm shadow-md disabled:opacity-50"
+                  >
                     {analyzing ? "Analyzing..." : "Run Analysis"}
                   </button>
                 </div>
@@ -828,4 +1095,3 @@ export default function CandidateProfilePage() {
     </div>
   );
 }
-

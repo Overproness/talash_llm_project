@@ -63,6 +63,50 @@ def _load_publishers() -> list[dict]:
         return []
 
 
+@lru_cache(maxsize=1)
+def _load_journal_quality() -> dict[str, dict]:
+    """Load Scimago journal index keyed by ISSN (primary) and lower-case title."""
+    path = os.path.join(get_settings().reference_data_dir, "journal_quality.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            records: list[dict] = json.load(f)
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        logger.warning(f"Could not load journal_quality.json: {e}")
+        return {}
+
+    index: dict[str, dict] = {}
+    for rec in records:
+        for issn in rec.get("issn_all", []):
+            if issn:
+                index[issn] = rec
+        primary_issn = rec.get("issn", "")
+        if primary_issn:
+            index[primary_issn] = rec
+        title = rec.get("title", "").lower().strip()
+        if title:
+            index.setdefault(title, rec)
+    return index
+
+
+def _lookup_scimago(issn: str = "", title: str = "") -> Optional[dict]:
+    """Look up a journal in the local Scimago index by ISSN or title."""
+    index = _load_journal_quality()
+    if not index:
+        return None
+    if issn:
+        clean = issn.replace("-", "").strip()
+        hit = index.get(clean)
+        if hit:
+            return hit
+    if title:
+        hit = index.get(title.lower().strip())
+        if hit:
+            return hit
+    return None
+
+
 # Build flat index of conference names → entry dict (once, cached)
 @lru_cache(maxsize=1)
 def _build_conference_index() -> tuple[list[str], list[dict]]:
@@ -76,6 +120,15 @@ def _build_conference_index() -> tuple[list[str], list[dict]]:
                 all_names.append(label.lower())
                 entries.append(conf)
     return all_names, entries
+
+
+def cache_clear() -> None:
+    """Clear all lru_cache loaders so updated reference data is reloaded on next access."""
+    _load_conferences.cache_clear()
+    _load_publishers.cache_clear()
+    _load_journal_quality.cache_clear()
+    _build_conference_index.cache_clear()
+    logger.info("research_analyzer: reference data caches cleared")
 
 
 # ─── Authorship role detection ────────────────────────────────────────────────
@@ -315,6 +368,17 @@ async def check_journal_quality(venue: str, issn: str) -> JournalQualityInfo:
                     cite_score=data.get("cite_score"),
                     data_source="scopus_api",
                 )
+
+    # Step 1.5: Local Scimago index (offline, always available)
+    scimago_hit = _lookup_scimago(issn=issn or "", title=venue or "")
+    if scimago_hit:
+        return JournalQualityInfo(
+            scopus_indexed=True,
+            wos_indexed=_infer_wos_from_publisher(_infer_publisher_from_venue(venue)),
+            quartile=scimago_hit.get("quartile", "unknown"),
+            sjr=scimago_hit.get("sjr"),
+            data_source="scimago_local",
+        )
 
     # Step 2: Scopus by title (for well-known journals)
     if venue and len(venue) > 5:

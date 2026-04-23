@@ -52,7 +52,7 @@ def _merge_pakistan_universities(existing: list[dict], new_pak: list[dict]) -> l
 def run() -> int:
     """Scrape HEC and merge Pakistan universities into university_rankings.json."""
     logger.info("HEC scraper: fetching page …")
-    with make_http_client(timeout=60.0) as client:
+    with make_http_client(timeout=60.0, verify=False) as client:
         response = client.get(HEC_URL)
         response.raise_for_status()
 

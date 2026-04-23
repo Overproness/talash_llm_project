@@ -24,6 +24,7 @@ def get_scrapers() -> dict[str, tuple[Callable, int]]:
         hec_universities,
         qs_rankings,
         publishers,
+        the_rankings,
     )
     return {
         "scimago_journals": (scimago_journals.run, 30),
@@ -31,6 +32,7 @@ def get_scrapers() -> dict[str, tuple[Callable, int]]:
         "hec_universities": (hec_universities.run, 90),
         "qs_rankings": (qs_rankings.run, 90),
         "publishers": (publishers.run, 90),
+        "the_rankings": (the_rankings.run, 365),
     }
 
 

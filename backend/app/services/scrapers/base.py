@@ -85,7 +85,7 @@ def write_reference_json(filename: str, data: Any) -> str:
     return path
 
 
-def make_http_client(timeout: float = 30.0) -> httpx.Client:
+def make_http_client(timeout: float = 30.0, verify: bool = True) -> httpx.Client:
     """Return a synchronous httpx client with a browser-like User-Agent."""
     headers = {
         "User-Agent": (
@@ -96,4 +96,4 @@ def make_http_client(timeout: float = 30.0) -> httpx.Client:
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
     }
-    return httpx.Client(headers=headers, timeout=timeout, follow_redirects=True)
+    return httpx.Client(headers=headers, timeout=timeout, follow_redirects=True, verify=verify)

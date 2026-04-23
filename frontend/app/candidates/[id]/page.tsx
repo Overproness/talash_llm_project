@@ -277,20 +277,28 @@ export default function CandidateProfilePage() {
                   </div>
                 </div>
               )}
-              {(researchSummary || researchProfile) && (researchSummary?.total_publications ?? researchProfile?.total_publications ?? 0) > 0 && (
-                <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
-                  <span className="text-[10px] text-outline uppercase tracking-widest">
-                    Publications
-                  </span>
-                  <div className="text-3xl font-bold text-violet-600 mt-1">
-                    {researchProfile?.total_publications ?? researchSummary?.total_publications}
+              {(researchSummary || researchProfile) &&
+                (researchSummary?.total_publications ??
+                  researchProfile?.total_publications ??
+                  0) > 0 && (
+                  <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
+                    <span className="text-[10px] text-outline uppercase tracking-widest">
+                      Publications
+                    </span>
+                    <div className="text-3xl font-bold text-violet-600 mt-1">
+                      {researchProfile?.total_publications ??
+                        researchSummary?.total_publications}
+                    </div>
+                    <p className="text-[10px] text-on-surface-variant mt-1">
+                      {researchProfile?.journal_count ??
+                        researchSummary?.journal_count}
+                      J /{" "}
+                      {researchProfile?.conference_count ??
+                        researchSummary?.conference_count}
+                      C
+                    </p>
                   </div>
-                  <p className="text-[10px] text-on-surface-variant mt-1">
-                    {researchProfile?.journal_count ?? researchSummary?.journal_count}J /{" "}
-                    {researchProfile?.conference_count ?? researchSummary?.conference_count}C
-                  </p>
-                </div>
-              )}
+                )}
               {researchProfile?.research_score != null && (
                 <div className="bg-surface-container-lowest rounded-2xl p-5 shadow-sm">
                   <span className="text-[10px] text-outline uppercase tracking-widest">
@@ -903,50 +911,62 @@ export default function CandidateProfilePage() {
                           <td className="px-5 py-3 text-xs text-primary">
                             {pub.doi || "—"}
                           </td>
-                          {researchProfile && (() => {
-                            const qi = researchProfile.publication_quality[i];
-                            if (!qi) return <td className="px-5 py-3" />;
-                            const qualityColors: Record<string, string> = {
-                              High: "bg-emerald-100 text-emerald-800",
-                              Medium: "bg-amber-100 text-amber-800",
-                              Low: "bg-red-100 text-red-800",
-                              Unknown: "bg-surface-container text-on-surface-variant",
-                            };
-                            const roleColors: Record<string, string> = {
-                              first_author: "bg-primary-fixed text-on-primary-fixed",
-                              sole_author: "bg-primary-fixed text-on-primary-fixed",
-                              corresponding_author: "bg-blue-100 text-blue-800",
-                              co_author: "bg-surface-container text-on-surface-variant",
-                              first_and_corresponding: "bg-primary-fixed text-on-primary-fixed",
-                              unknown: "bg-surface-container text-on-surface-variant",
-                            };
-                            const coreRank = qi.conference_quality?.core_rank;
-                            const quartile = qi.journal_quality?.quartile;
-                            return (
-                              <td className="px-5 py-3">
-                                <div className="flex flex-col gap-1 items-start">
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${qualityColors[qi.quality_label] ?? qualityColors.Unknown}`}>
-                                    {qi.quality_label}
-                                  </span>
-                                  {quartile && quartile !== "unknown" && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">
-                                      {quartile}
+                          {researchProfile &&
+                            (() => {
+                              const qi = researchProfile.publication_quality[i];
+                              if (!qi) return <td className="px-5 py-3" />;
+                              const qualityColors: Record<string, string> = {
+                                High: "bg-emerald-100 text-emerald-800",
+                                Medium: "bg-amber-100 text-amber-800",
+                                Low: "bg-red-100 text-red-800",
+                                Unknown:
+                                  "bg-surface-container text-on-surface-variant",
+                              };
+                              const roleColors: Record<string, string> = {
+                                first_author:
+                                  "bg-primary-fixed text-on-primary-fixed",
+                                sole_author:
+                                  "bg-primary-fixed text-on-primary-fixed",
+                                corresponding_author:
+                                  "bg-blue-100 text-blue-800",
+                                co_author:
+                                  "bg-surface-container text-on-surface-variant",
+                                first_and_corresponding:
+                                  "bg-primary-fixed text-on-primary-fixed",
+                                unknown:
+                                  "bg-surface-container text-on-surface-variant",
+                              };
+                              const coreRank = qi.conference_quality?.core_rank;
+                              const quartile = qi.journal_quality?.quartile;
+                              return (
+                                <td className="px-5 py-3">
+                                  <div className="flex flex-col gap-1 items-start">
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${qualityColors[qi.quality_label] ?? qualityColors.Unknown}`}
+                                    >
+                                      {qi.quality_label}
                                     </span>
-                                  )}
-                                  {coreRank && coreRank !== "unknown" && (
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
-                                      CORE {coreRank}
-                                    </span>
-                                  )}
-                                  {qi.authorship_role !== "unknown" && (
-                                    <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${roleColors[qi.authorship_role] ?? roleColors.unknown}`}>
-                                      {qi.authorship_role.replace(/_/g, " ")}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                            );
-                          })()}
+                                    {quartile && quartile !== "unknown" && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-800">
+                                        {quartile}
+                                      </span>
+                                    )}
+                                    {coreRank && coreRank !== "unknown" && (
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800">
+                                        CORE {coreRank}
+                                      </span>
+                                    )}
+                                    {qi.authorship_role !== "unknown" && (
+                                      <span
+                                        className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${roleColors[qi.authorship_role] ?? roleColors.unknown}`}
+                                      >
+                                        {qi.authorship_role.replace(/_/g, " ")}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                            })()}
                         </tr>
                       ))}
                     </tbody>
@@ -1054,19 +1074,23 @@ export default function CandidateProfilePage() {
                               </span>
                             </div>
                             <div className="flex items-center gap-2 flex-wrap justify-end">
-                              {iq.hec_category && iq.hec_category !== "N/A" && iq.hec_category !== "" && (
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
-                                  iq.hec_category === "W"
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : iq.hec_category === "X"
-                                      ? "bg-blue-100 text-blue-800"
-                                      : iq.hec_category === "Y"
-                                        ? "bg-amber-100 text-amber-800"
-                                        : "bg-surface-container text-on-surface-variant"
-                                }`}>
-                                  HEC {iq.hec_category}
-                                </span>
-                              )}
+                              {iq.hec_category &&
+                                iq.hec_category !== "N/A" &&
+                                iq.hec_category !== "" && (
+                                  <span
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                      iq.hec_category === "W"
+                                        ? "bg-emerald-100 text-emerald-800"
+                                        : iq.hec_category === "X"
+                                          ? "bg-blue-100 text-blue-800"
+                                          : iq.hec_category === "Y"
+                                            ? "bg-amber-100 text-amber-800"
+                                            : "bg-surface-container text-on-surface-variant"
+                                    }`}
+                                  >
+                                    HEC {iq.hec_category}
+                                  </span>
+                                )}
                               {iq.qs_rank && iq.qs_rank !== "unranked" && (
                                 <span className="text-[10px] bg-violet-100 text-violet-800 font-bold px-2 py-0.5 rounded-full">
                                   QS #{iq.qs_rank}
@@ -1162,102 +1186,162 @@ export default function CandidateProfilePage() {
                   {/* Quality metrics row */}
                   <div className="grid grid-cols-4 gap-3 mb-5">
                     <div className="bg-surface-container rounded-lg p-3 text-center">
-                      <span className="text-xl font-bold text-emerald-600">{researchProfile.high_quality_journal_count}</span>
-                      <p className="text-[10px] text-outline uppercase mt-1">Q1/Q2 Journals</p>
+                      <span className="text-xl font-bold text-emerald-600">
+                        {researchProfile.high_quality_journal_count}
+                      </span>
+                      <p className="text-[10px] text-outline uppercase mt-1">
+                        Q1/Q2 Journals
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3 text-center">
-                      <span className="text-xl font-bold text-sky-600">{researchProfile.top_conference_count}</span>
-                      <p className="text-[10px] text-outline uppercase mt-1">CORE A*/A Conf.</p>
+                      <span className="text-xl font-bold text-sky-600">
+                        {researchProfile.top_conference_count}
+                      </span>
+                      <p className="text-[10px] text-outline uppercase mt-1">
+                        CORE A*/A Conf.
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3 text-center">
-                      <span className="text-xl font-bold text-primary">{researchProfile.first_author_count}</span>
-                      <p className="text-[10px] text-outline uppercase mt-1">First/Sole Author</p>
+                      <span className="text-xl font-bold text-primary">
+                        {researchProfile.first_author_count}
+                      </span>
+                      <p className="text-[10px] text-outline uppercase mt-1">
+                        First/Sole Author
+                      </p>
                     </div>
                     <div className="bg-surface-container rounded-lg p-3 text-center">
-                      <span className="text-xl font-bold text-violet-600">{researchProfile.scopus_indexed_count}</span>
-                      <p className="text-[10px] text-outline uppercase mt-1">Scopus Indexed</p>
+                      <span className="text-xl font-bold text-violet-600">
+                        {researchProfile.scopus_indexed_count}
+                      </span>
+                      <p className="text-[10px] text-outline uppercase mt-1">
+                        Scopus Indexed
+                      </p>
                     </div>
                   </div>
 
                   {/* Topic variability */}
-                  {researchProfile.topic_variability && researchProfile.topic_variability.topic_breakdown.length > 0 && (
-                    <div className="mb-5">
-                      <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">
-                        Research Topic Distribution
-                        <span className="ml-2 text-outline font-normal normal-case">
-                          Diversity: {(researchProfile.topic_variability.diversity_score * 100).toFixed(0)}%
-                          {researchProfile.topic_variability.is_specialist ? " (Specialist)" : " (Broad)"}
-                        </span>
-                      </h4>
-                      <div className="space-y-2">
-                        {researchProfile.topic_variability.topic_breakdown.slice(0, 8).map((item, i) => (
-                          <div key={i} className="flex items-center gap-3">
-                            <span className="text-xs text-on-surface-variant w-40 truncate capitalize flex-shrink-0">
-                              {item.area}
-                            </span>
-                            <div className="flex-1 h-2 rounded-full bg-surface-container">
-                              <div
-                                className="h-full rounded-full bg-primary"
-                                style={{ width: `${item.percentage}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-outline w-10 text-right flex-shrink-0">
-                              {item.percentage}%
-                            </span>
-                          </div>
-                        ))}
+                  {researchProfile.topic_variability &&
+                    researchProfile.topic_variability.topic_breakdown.length >
+                      0 && (
+                      <div className="mb-5">
+                        <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">
+                          Research Topic Distribution
+                          <span className="ml-2 text-outline font-normal normal-case">
+                            Diversity:{" "}
+                            {(
+                              researchProfile.topic_variability
+                                .diversity_score * 100
+                            ).toFixed(0)}
+                            %
+                            {researchProfile.topic_variability.is_specialist
+                              ? " (Specialist)"
+                              : " (Broad)"}
+                          </span>
+                        </h4>
+                        <div className="space-y-2">
+                          {researchProfile.topic_variability.topic_breakdown
+                            .slice(0, 8)
+                            .map((item, i) => (
+                              <div key={i} className="flex items-center gap-3">
+                                <span className="text-xs text-on-surface-variant w-40 truncate capitalize flex-shrink-0">
+                                  {item.area}
+                                </span>
+                                <div className="flex-1 h-2 rounded-full bg-surface-container">
+                                  <div
+                                    className="h-full rounded-full bg-primary"
+                                    style={{ width: `${item.percentage}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-outline w-10 text-right flex-shrink-0">
+                                  {item.percentage}%
+                                </span>
+                              </div>
+                            ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Co-author analysis */}
-                  {researchProfile.co_author_analysis && researchProfile.co_author_analysis.unique_co_authors > 0 && (
-                    <div>
-                      <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">
-                        Collaboration Profile
-                      </h4>
-                      <div className="grid grid-cols-3 gap-3 mb-3">
-                        <div className="bg-surface-container rounded-lg p-3 text-center">
-                          <span className="text-xl font-bold text-on-surface">{researchProfile.co_author_analysis.unique_co_authors}</span>
-                          <p className="text-[10px] text-outline uppercase mt-1">Unique Co-Authors</p>
-                        </div>
-                        <div className="bg-surface-container rounded-lg p-3 text-center">
-                          <span className="text-xl font-bold text-on-surface">{researchProfile.co_author_analysis.avg_team_size}</span>
-                          <p className="text-[10px] text-outline uppercase mt-1">Avg Team Size</p>
-                        </div>
-                        <div className="bg-surface-container rounded-lg p-3 text-center">
-                          <span className="text-xl font-bold text-on-surface">{researchProfile.co_author_analysis.single_author_papers}</span>
-                          <p className="text-[10px] text-outline uppercase mt-1">Solo Papers</p>
-                        </div>
-                      </div>
-                      {researchProfile.co_author_analysis.most_frequent_collaborators.length > 0 && (
-                        <div>
-                          <p className="text-xs text-on-surface-variant uppercase tracking-widest mb-2">Top Collaborators</p>
-                          <div className="flex flex-wrap gap-2">
-                            {researchProfile.co_author_analysis.most_frequent_collaborators.slice(0, 6).map((c, i) => (
-                              <span key={i} className="text-[11px] bg-primary-fixed text-on-primary-fixed px-3 py-1 rounded-full">
-                                {c.name} <span className="opacity-70">({c.count})</span>
-                              </span>
-                            ))}
+                  {researchProfile.co_author_analysis &&
+                    researchProfile.co_author_analysis.unique_co_authors >
+                      0 && (
+                      <div>
+                        <h4 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-3">
+                          Collaboration Profile
+                        </h4>
+                        <div className="grid grid-cols-3 gap-3 mb-3">
+                          <div className="bg-surface-container rounded-lg p-3 text-center">
+                            <span className="text-xl font-bold text-on-surface">
+                              {
+                                researchProfile.co_author_analysis
+                                  .unique_co_authors
+                              }
+                            </span>
+                            <p className="text-[10px] text-outline uppercase mt-1">
+                              Unique Co-Authors
+                            </p>
+                          </div>
+                          <div className="bg-surface-container rounded-lg p-3 text-center">
+                            <span className="text-xl font-bold text-on-surface">
+                              {researchProfile.co_author_analysis.avg_team_size}
+                            </span>
+                            <p className="text-[10px] text-outline uppercase mt-1">
+                              Avg Team Size
+                            </p>
+                          </div>
+                          <div className="bg-surface-container rounded-lg p-3 text-center">
+                            <span className="text-xl font-bold text-on-surface">
+                              {
+                                researchProfile.co_author_analysis
+                                  .single_author_papers
+                              }
+                            </span>
+                            <p className="text-[10px] text-outline uppercase mt-1">
+                              Solo Papers
+                            </p>
                           </div>
                         </div>
-                      )}
-                    </div>
-                  )}
+                        {researchProfile.co_author_analysis
+                          .most_frequent_collaborators.length > 0 && (
+                          <div>
+                            <p className="text-xs text-on-surface-variant uppercase tracking-widest mb-2">
+                              Top Collaborators
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {researchProfile.co_author_analysis.most_frequent_collaborators
+                                .slice(0, 6)
+                                .map((c, i) => (
+                                  <span
+                                    key={i}
+                                    className="text-[11px] bg-primary-fixed text-on-primary-fixed px-3 py-1 rounded-full"
+                                  >
+                                    {c.name}{" "}
+                                    <span className="opacity-70">
+                                      ({c.count})
+                                    </span>
+                                  </span>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                 </div>
               )}
 
               {/* Research summary (fallback) */}
-              {!researchProfile && researchSummary && researchSummary.total_publications > 0 && (
-                <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
-                    Research Summary
-                  </h3>
-                  <p className="text-sm text-on-surface leading-relaxed">
-                    {researchSummary.overall_assessment}
-                  </p>
-                </div>
-              )}
+              {!researchProfile &&
+                researchSummary &&
+                researchSummary.total_publications > 0 && (
+                  <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-4">
+                      Research Summary
+                    </h3>
+                    <p className="text-sm text-on-surface leading-relaxed">
+                      {researchSummary.overall_assessment}
+                    </p>
+                  </div>
+                )}
 
               {!eduAnalysis && !expAnalysis && (
                 <div className="bg-surface-container-lowest rounded-2xl p-12 text-center shadow-sm">

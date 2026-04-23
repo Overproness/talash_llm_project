@@ -96,6 +96,11 @@ export interface EducationAnalysis {
     degree: string
     level: string
     ranking_info: string
+    hec_category: string
+    qs_rank: string
+    the_rank: string
+    tier: string
+    matched_name: string
   }>
   education_gaps: EducationGap[]
   gap_justifications: string[]
@@ -150,6 +155,71 @@ export interface ResearchProfileSummary {
   overall_assessment: string
 }
 
+// ─── Milestone 3 research quality types ──────────────────────────────────────
+
+export interface JournalQualityInfo {
+  scopus_indexed: boolean
+  wos_indexed: boolean
+  quartile: 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'unknown'
+  sjr: number | null
+  cite_score: number | null
+  impact_factor: number | null
+  is_predatory: boolean
+  data_source: string
+}
+
+export interface ConferenceQualityInfo {
+  core_rank: 'A*' | 'A' | 'B' | 'C' | 'unknown'
+  proceedings_publisher: string
+  is_indexed: boolean
+  series_number: number | null
+  estimated_maturity: string
+  data_source: string
+}
+
+export interface BookQualityInfo {
+  publisher_credibility: string
+  publisher_type: string
+  matched_publisher: string
+}
+
+export interface PublicationQualityItem {
+  pub_index: number
+  authorship_role: string
+  author_position: number
+  total_authors: number
+  quality_label: 'High' | 'Medium' | 'Low' | 'Unknown'
+  journal_quality: JournalQualityInfo | null
+  conference_quality: ConferenceQualityInfo | null
+}
+
+export interface CoAuthorStats {
+  unique_co_authors: number
+  most_frequent_collaborators: Array<{ name: string; count: number }>
+  avg_team_size: number
+  single_author_papers: number
+  collaboration_diversity_score: number
+}
+
+export interface TopicVariabilityResult {
+  topic_breakdown: Array<{ area: string; count: number; percentage: number }>
+  dominant_area: string
+  diversity_score: number
+  is_specialist: boolean
+}
+
+export interface FullResearchProfile extends ResearchProfileSummary {
+  publication_quality: PublicationQualityItem[]
+  book_quality: BookQualityInfo[]
+  high_quality_journal_count: number
+  top_conference_count: number
+  first_author_count: number
+  scopus_indexed_count: number
+  topic_variability: TopicVariabilityResult | null
+  co_author_analysis: CoAuthorStats | null
+  research_score: number | null
+}
+
 export interface MissingInfoItem {
   field: string
   description: string
@@ -202,6 +272,7 @@ export interface CandidateFull {
   education_analysis: EducationAnalysis | null
   experience_analysis: ExperienceAnalysis | null
   research_summary: ResearchProfileSummary | null
+  research_profile: FullResearchProfile | null
   overall_score: number | null
   summary: string
 }

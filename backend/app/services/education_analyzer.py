@@ -8,12 +8,18 @@ Evaluates:
   - Educational gap detection
   - Gap justification via professional experience
   - Overall educational strength interpretation
+  - Institution quality lookup (HEC category + QS/THE rankings)
 """
 
 import json
 import logging
+import os
+from functools import lru_cache
 from typing import Optional
 
+from rapidfuzz import fuzz, process as rf_process
+
+from app.core.config import get_settings
 from app.models.candidate import (
     CandidateDocument,
     EducationAnalysis,
@@ -28,6 +34,94 @@ logger = logging.getLogger(__name__)
 # ─── Education level ordering for progression analysis ────────────────────────
 
 LEVEL_ORDER = {"SSE": 1, "HSSC": 2, "UG": 3, "PG": 4, "PhD": 5, "Other": 0}
+
+
+# ─── Institution ranking lookup ───────────────────────────────────────────────
+
+@lru_cache(maxsize=1)
+def _load_university_rankings() -> list[dict]:
+    path = os.path.join(get_settings().reference_data_dir, "university_rankings.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.warning(f"Could not load university_rankings.json: {e}")
+        return []
+
+
+@lru_cache(maxsize=1)
+def _build_university_index() -> tuple[list[str], list[dict]]:
+    """Returns (all_names, entries). all_names includes name + aliases (lower-cased)."""
+    universities = _load_university_rankings()
+    all_names: list[str] = []
+    entries: list[dict] = []
+    for uni in universities:
+        for label in [uni.get("name", "")] + uni.get("aliases", []):
+            if label:
+                all_names.append(label.lower())
+                entries.append(uni)
+    return all_names, entries
+
+
+def lookup_institution_ranking(institution_name: str) -> dict:
+    """
+    Fuzzy-match an institution name against the local rankings database.
+    Returns a dict with ranking info fields, or an "unknown" fallback.
+    """
+    if not institution_name or not institution_name.strip():
+        return {
+            "hec_category": "N/A",
+            "qs_rank": "unranked",
+            "the_rank": "unranked",
+            "tier": "unknown",
+            "ranking_info": "Institution name not provided",
+            "matched_name": "",
+        }
+
+    all_names, entries = _build_university_index()
+    result = rf_process.extractOne(
+        institution_name.lower(),
+        all_names,
+        scorer=fuzz.token_set_ratio,
+        score_cutoff=72,
+    )
+
+    if result is not None:
+        _, score, idx = result
+        uni = entries[idx]
+        country = uni.get("country", "")
+        hec_cat = uni.get("hec_category", "N/A")
+        qs = uni.get("qs_rank", "unranked")
+        the = uni.get("the_rank", "unranked")
+        tier = uni.get("tier", "unknown")
+
+        # Build human-readable ranking_info string
+        parts = []
+        if country == "Pakistan" and hec_cat not in ("N/A", ""):
+            parts.append(f"HEC Category {hec_cat}")
+        if qs and qs != "unranked":
+            parts.append(f"QS #{qs}")
+        if the and the != "unranked":
+            parts.append(f"THE #{the}")
+        ranking_info = " | ".join(parts) if parts else "Ranked institution (details unavailable)"
+
+        return {
+            "hec_category": hec_cat,
+            "qs_rank": qs,
+            "the_rank": the,
+            "tier": tier,
+            "ranking_info": ranking_info,
+            "matched_name": uni.get("name", ""),
+        }
+
+    return {
+        "hec_category": "N/A",
+        "qs_rank": "unranked",
+        "the_rank": "unranked",
+        "tier": "unknown",
+        "ranking_info": "Not found in ranking databases",
+        "matched_name": "",
+    }
 
 
 def _level_rank(level: str) -> int:
@@ -204,15 +298,16 @@ def analyze_education_rule_based(doc: CandidateDocument) -> EducationAnalysis:
     # Specialization consistency
     spec_consistency = _check_specialization_consistency(education)
 
-    # Institution quality (basic — just extract names)
+    # Institution quality — look up real rankings
     institution_quality = []
     for edu in education:
         if edu.institution:
+            ranking = lookup_institution_ranking(edu.institution)
             institution_quality.append({
                 "institution": edu.institution,
                 "degree": edu.degree,
                 "level": edu.level,
-                "ranking_info": "Ranking data not yet available",
+                **ranking,
             })
 
     # Education gaps
@@ -373,7 +468,9 @@ async def analyze_education_with_llm(doc: CandidateDocument) -> EducationAnalysi
                 for note in result["institution_quality_notes"]:
                     for iq in analysis.institution_quality:
                         if note.get("institution", "").lower() in iq.get("institution", "").lower():
-                            iq["ranking_info"] = note.get("notes", "")
+                            # Only add LLM notes if we don't already have real ranking data
+                            if not iq.get("matched_name"):
+                                iq["ranking_info"] = note.get("notes", "")
     except Exception as e:
         logger.warning(f"LLM education analysis failed, using rule-based only: {e}")
 

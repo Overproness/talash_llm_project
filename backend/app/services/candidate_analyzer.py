@@ -16,11 +16,13 @@ from app.models.candidate import (
     CandidateDocument,
     EducationAnalysis,
     ExperienceAnalysis,
+    FullResearchProfile,
     ResearchProfileSummary,
 )
 from app.services.education_analyzer import analyze_education
 from app.services.experience_analyzer import analyze_experience
 from app.services.email_generator import detect_missing_info_detailed
+from app.services.research_analyzer import analyze_full_research_profile
 from app.services.llm_client import generate_with_llm_text, is_llm_available
 
 logger = logging.getLogger(__name__)
@@ -215,7 +217,7 @@ async def _generate_summary_with_llm(
 def compute_overall_score(
     edu_analysis: Optional[EducationAnalysis],
     exp_analysis: Optional[ExperienceAnalysis],
-    research: Optional[ResearchProfileSummary],
+    research: Optional[FullResearchProfile],
     doc: CandidateDocument,
 ) -> float:
     """Compute a weighted overall candidate score (0-100)."""
@@ -232,22 +234,21 @@ def compute_overall_score(
         score += exp_analysis.experience_score * 0.25
         weights_used += 0.25
 
-    # Research: 25% weight
-    if research and research.total_publications > 0:
-        research_score = min(research.total_publications * 5, 50)
-        if research.journal_count > 0:
-            research_score += min(research.journal_count * 8, 30)
-        if research.conference_count > 0:
-            research_score += min(research.conference_count * 4, 20)
-        research_score = min(research_score, 100)
-        score += research_score * 0.25
-        weights_used += 0.25
+    # Research: 30% weight (now uses quality-weighted score from FullResearchProfile)
+    if research and research.research_score is not None:
+        score += research.research_score * 0.30
+        weights_used += 0.30
+    elif research and research.total_publications > 0:
+        # Fallback: count-based if quality score missing
+        raw = min(research.total_publications * 5, 100)
+        score += raw * 0.30
+        weights_used += 0.30
 
-    # Skills: 10% weight
+    # Skills: 5% weight
     if doc.skills:
         skills_score = min(len(doc.skills) * 5, 100)
-        score += skills_score * 0.10
-        weights_used += 0.10
+        score += skills_score * 0.05
+        weights_used += 0.05
 
     # Completeness: 10% weight
     missing_penalty = min(len(doc.missing_fields) * 3, 50)
@@ -266,7 +267,7 @@ def compute_overall_score(
 
 async def run_full_analysis(doc: CandidateDocument) -> dict:
     """
-    Run the complete Milestone 2 analysis pipeline on a candidate.
+    Run the complete analysis pipeline on a candidate (Milestones 2 + 3).
     Returns dict with all analysis results to store in MongoDB.
     """
     logger.info(f"Running full analysis for {doc.personal_info.name or doc.filename}")
@@ -274,23 +275,36 @@ async def run_full_analysis(doc: CandidateDocument) -> dict:
     # Run analyses
     edu_analysis = await analyze_education(doc)
     exp_analysis = await analyze_experience(doc)
-    research = analyze_research_profile(doc)
+    research_profile = await analyze_full_research_profile(doc)
     missing_detailed = detect_missing_info_detailed(doc)
+
+    # Build backward-compat ResearchProfileSummary from FullResearchProfile
+    research_summary = ResearchProfileSummary(
+        total_publications=research_profile.total_publications,
+        journal_count=research_profile.journal_count,
+        conference_count=research_profile.conference_count,
+        book_chapter_count=research_profile.book_chapter_count,
+        publication_years_range=research_profile.publication_years_range,
+        primary_research_areas=research_profile.primary_research_areas,
+        publication_trend=research_profile.publication_trend,
+        overall_assessment=research_profile.overall_assessment,
+    )
 
     # Generate summary
     llm_ok = await is_llm_available()
     if llm_ok:
-        summary = await _generate_summary_with_llm(doc, edu_analysis, exp_analysis, research)
+        summary = await _generate_summary_with_llm(doc, edu_analysis, exp_analysis, research_summary)
     else:
-        summary = _generate_summary_rule_based(doc, edu_analysis, exp_analysis, research)
+        summary = _generate_summary_rule_based(doc, edu_analysis, exp_analysis, research_summary)
 
-    # Compute overall score
-    overall_score = compute_overall_score(edu_analysis, exp_analysis, research, doc)
+    # Compute overall score using quality-weighted research profile
+    overall_score = compute_overall_score(edu_analysis, exp_analysis, research_profile, doc)
 
     return {
         "education_analysis": edu_analysis.model_dump(),
         "experience_analysis": exp_analysis.model_dump(),
-        "research_summary": research.model_dump(),
+        "research_summary": research_summary.model_dump(),
+        "research_profile": research_profile.model_dump(),
         "missing_info_detailed": [m.model_dump() for m in missing_detailed],
         "summary": summary,
         "overall_score": overall_score,

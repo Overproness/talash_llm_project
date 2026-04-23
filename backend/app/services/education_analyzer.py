@@ -63,6 +63,13 @@ def _build_university_index() -> tuple[list[str], list[dict]]:
     return all_names, entries
 
 
+def cache_clear() -> None:
+    """Clear all lru_cache loaders so updated reference data is reloaded on next access."""
+    _load_university_rankings.cache_clear()
+    _build_university_index.cache_clear()
+    logger.info("education_analyzer: reference data caches cleared")
+
+
 def lookup_institution_ranking(institution_name: str) -> dict:
     """
     Fuzzy-match an institution name against the local rankings database.

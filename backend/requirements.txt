@@ -16,6 +16,10 @@ rapidfuzz==3.10.1
 requests==2.32.3
 pytest==8.3.3
 pytest-asyncio==0.24.0
+# Scheduling & scraping
+apscheduler>=3.10.4
+beautifulsoup4>=4.12
+lxml>=5.0
 # LangChain — multi-provider LLM support
 langchain>=0.3.0
 langchain-core>=0.3.0

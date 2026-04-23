@@ -16,3 +16,5 @@ __pycache__/
 cv_uploads/
 processed/
 data/
+.sb_profile/
+.sb_profile_debug/

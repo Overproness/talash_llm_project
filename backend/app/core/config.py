@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     max_file_size_mb: int = 50
     api_prefix: str = "/api"
 
+    # ── External APIs ─────────────────────────────────────────────────────────
+    # Elsevier / Scopus API key (note: env var uses typo "elseivier_api_key")
+    elseivier_api_key: str = ""
+
 
 @lru_cache()
 def get_settings() -> Settings:

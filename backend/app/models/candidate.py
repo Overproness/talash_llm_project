@@ -139,6 +139,97 @@ class ResearchProfileSummary(BaseModel):
     overall_assessment: str = ""
 
 
+# ─── Research quality models (Milestone 3) ───────────────────────────────────
+
+class JournalQualityInfo(BaseModel):
+    """Quality assessment for a journal publication venue."""
+    scopus_indexed: bool = False
+    wos_indexed: bool = False
+    quartile: str = "unknown"           # Q1 / Q2 / Q3 / Q4 / unknown
+    sjr: Optional[float] = None
+    cite_score: Optional[float] = None
+    impact_factor: Optional[float] = None
+    is_predatory: bool = False
+    data_source: str = "unknown"        # scopus_api / publisher_inference / llm / unknown
+
+
+class ConferenceQualityInfo(BaseModel):
+    """Quality assessment for a conference publication venue."""
+    core_rank: str = "unknown"          # A* / A / B / C / unknown
+    proceedings_publisher: str = "unknown"  # IEEE / ACM / Springer / etc.
+    is_indexed: bool = False
+    series_number: Optional[int] = None    # e.g. 13 for "13th International ..."
+    estimated_maturity: str = "unknown"    # established (>10) / growing (5-10) / recent (<5) / unknown
+    data_source: str = "unknown"           # local_db / publisher_inference / unknown
+
+
+class BookQualityInfo(BaseModel):
+    """Quality assessment for a book."""
+    publisher_credibility: str = "unknown"   # top_academic / reputable / known / predatory / unknown
+    publisher_type: str = "unknown"          # academic / trade / self_published / unknown
+    matched_publisher: str = ""
+
+
+class PublicationQualityItem(BaseModel):
+    """Per-publication quality enrichment linked back to doc.publications[pub_index]."""
+    pub_index: int = 0
+    authorship_role: str = "unknown"     # first_author / corresponding_author / first_and_corresponding / co_author / sole_author / unknown
+    author_position: int = -1            # 0-based position in authors list (-1 = not found)
+    total_authors: int = 0
+    quality_label: str = "unknown"       # High / Medium / Low / Unknown
+    journal_quality: Optional[JournalQualityInfo] = None
+    conference_quality: Optional[ConferenceQualityInfo] = None
+
+
+class CoAuthorStats(BaseModel):
+    """Co-authorship collaboration analysis (Module 3.7)."""
+    unique_co_authors: int = 0
+    most_frequent_collaborators: list[dict] = []   # [{name, count}]
+    avg_team_size: float = 0.0
+    single_author_papers: int = 0
+    collaboration_diversity_score: float = 0.0     # unique_co_authors / total_co_author_appearances
+
+
+class TopicVariabilityResult(BaseModel):
+    """Topic variability across publications (Module 3.6)."""
+    topic_breakdown: list[dict] = []    # [{area, count, percentage}]
+    dominant_area: str = ""
+    diversity_score: float = 0.0        # Shannon entropy normalized 0-1
+    is_specialist: bool = False         # True if >70% in single area
+
+
+class FullResearchProfile(BaseModel):
+    """Complete research profile (Milestone 3 — Modules 3.2, 3.6, 3.7)."""
+    # ── Basic counts (from ResearchProfileSummary) ───────────────────────────
+    total_publications: int = 0
+    journal_count: int = 0
+    conference_count: int = 0
+    book_chapter_count: int = 0
+    publication_years_range: str = ""
+    primary_research_areas: list[str] = []
+    publication_trend: str = ""
+    overall_assessment: str = ""
+
+    # ── Quality analysis ─────────────────────────────────────────────────────
+    publication_quality: list[PublicationQualityItem] = []
+    book_quality: list[BookQualityInfo] = []
+
+    # ── Aggregate quality metrics ─────────────────────────────────────────────
+    high_quality_journal_count: int = 0    # Q1 + Q2 journals
+    top_conference_count: int = 0          # CORE A* + A conferences
+    first_author_count: int = 0
+    scopus_indexed_count: int = 0
+
+    # ── Topic variability (Module 3.6) ────────────────────────────────────────
+    topic_variability: Optional[TopicVariabilityResult] = None
+
+    # ── Co-author analysis (Module 3.7) ──────────────────────────────────────
+    co_author_analysis: Optional[CoAuthorStats] = None
+
+    # ── Score ─────────────────────────────────────────────────────────────────
+    research_score: Optional[float] = None  # 0-100
+
+
 class MissingInfoItem(BaseModel):
     field: str = ""
     description: str = ""
@@ -185,6 +276,8 @@ class CandidateDocument(BaseModel):
     education_analysis: Optional[EducationAnalysis] = None
     experience_analysis: Optional[ExperienceAnalysis] = None
     research_summary: Optional[ResearchProfileSummary] = None
+    # Full research profile (Milestone 3)
+    research_profile: Optional[FullResearchProfile] = None
     overall_score: Optional[float] = None
     summary: str = ""
 

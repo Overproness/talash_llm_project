@@ -20,6 +20,7 @@ pytest-asyncio==0.24.0
 apscheduler>=3.10.4
 beautifulsoup4>=4.12
 lxml>=5.0
+playwright>=1.40.0
 # LangChain — multi-provider LLM support
 langchain>=0.3.0
 langchain-core>=0.3.0

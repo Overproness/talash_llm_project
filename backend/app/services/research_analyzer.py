@@ -341,15 +341,76 @@ async def _llm_journal_quality(venue: str, issn: str) -> Optional[JournalQuality
     return None
 
 
+def _jif_to_quartile(jif: float) -> str:
+    """Approximate Scimago quartile from Journal Impact Factor heuristic."""
+    if jif >= 6.0:
+        return "Q1"
+    if jif >= 2.5:
+        return "Q2"
+    if jif >= 1.0:
+        return "Q3"
+    return "Q4"
+
+
+async def _wos_journal_lookup(venue: str) -> Optional[JournalQualityInfo]:
+    """
+    Search wos-journal.info for the venue name and derive quality info.
+    Returns JournalQualityInfo or None if no confident match.
+    Results are cached by the wos_journal_info module (30-day TTL).
+    """
+    try:
+        import asyncio
+        from app.services.scrapers import wos_journal_info
+
+        loop = asyncio.get_event_loop()
+        results: list[dict] = await loop.run_in_executor(
+            None, lambda: wos_journal_info.best_match(venue)
+        )
+        # best_match returns a single dict or None
+        if not results:
+            return None
+
+        hit = results  # best_match returns a dict
+        jif_raw = hit.get("Journal Impact Factor (JIF)", "") or ""
+        wos_indexes = hit.get("WoS Core Citation Indexes", "") or ""
+
+        jif: Optional[float] = None
+        try:
+            jif = float(str(jif_raw).replace(",", ".").strip())
+        except (ValueError, TypeError):
+            pass
+
+        wos_indexed = bool(
+            wos_indexes and any(
+                idx in wos_indexes.upper()
+                for idx in ("SCIE", "SSCI", "ESCI", "AHCI")
+            )
+        )
+
+        quartile = _jif_to_quartile(jif) if jif and jif > 0 else "unknown"
+
+        return JournalQualityInfo(
+            scopus_indexed=wos_indexed,  # WoS indexed journals are usually Scopus indexed too
+            wos_indexed=wos_indexed,
+            quartile=quartile,
+            data_source="wos_journal_info",
+        )
+    except Exception as e:
+        logger.debug(f"WoS journal lookup failed for '{venue}': {e}")
+        return None
+
+
 # ─── Journal quality check ────────────────────────────────────────────────────
 
 async def check_journal_quality(venue: str, issn: str) -> JournalQualityInfo:
     """
     Determine journal quality via:
       1. Scopus API by ISSN (if available)
+      1.5. Local Scimago index (offline)
       2. Scopus API by title
-      3. Publisher-based inference
-      4. LLM fallback
+      3. Publisher-based inference (fast, deterministic)
+      4. WoS Journal Info lookup (live search, cached 30 days)
+      5. LLM fallback
     """
     if not venue and not issn:
         return JournalQualityInfo()
@@ -359,7 +420,7 @@ async def check_journal_quality(venue: str, issn: str) -> JournalQualityInfo:
         clean_issn = issn.replace("-", "").strip()
         if clean_issn:
             data = await _scopus_lookup(issn=clean_issn)
-            if data:
+            if data and data.get("quartile") not in ("unknown", None, ""):
                 return JournalQualityInfo(
                     scopus_indexed=True,
                     wos_indexed=_infer_wos_from_publisher(_infer_publisher_from_venue(venue)),
@@ -380,10 +441,10 @@ async def check_journal_quality(venue: str, issn: str) -> JournalQualityInfo:
             data_source="scimago_local",
         )
 
-    # Step 2: Scopus by title (for well-known journals)
+    # Step 2: Scopus by title (only use if it returns a definite quartile)
     if venue and len(venue) > 5:
         data = await _scopus_lookup(title=venue[:100])
-        if data:
+        if data and data.get("quartile") not in ("unknown", None, ""):
             return JournalQualityInfo(
                 scopus_indexed=True,
                 wos_indexed=_infer_wos_from_publisher(_infer_publisher_from_venue(venue)),
@@ -393,14 +454,20 @@ async def check_journal_quality(venue: str, issn: str) -> JournalQualityInfo:
                 data_source="scopus_api",
             )
 
-    # Step 3: Publisher-based inference
+    # Step 3: Publisher-based inference (fast, deterministic — no network call)
     publisher = _infer_publisher_from_venue(venue)
     if publisher != "unknown":
         inferred = _infer_quality_from_publisher(publisher, venue)
         if inferred:
             return inferred
 
-    # Step 4: LLM fallback
+    # Step 4: WoS Journal Info lookup (live search, results cached locally)
+    if venue and len(venue) > 5:
+        wos_result = await _wos_journal_lookup(venue)
+        if wos_result and wos_result.quartile != "unknown":
+            return wos_result
+
+    # Step 5: LLM fallback
     llm_result = await _llm_journal_quality(venue, issn)
     if llm_result:
         return llm_result

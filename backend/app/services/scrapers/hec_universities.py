@@ -2,8 +2,12 @@
 HEC Universities scraper.
 
 Source: https://www.hec.gov.pk/english/universities/pages/recognised.aspx
-Scrapes the HTML table listing Pakistani universities recognized by HEC,
-per category W / X / Y / Z.
+Scrapes the card-based listing of Pakistani universities recognised by HEC.
+
+The old W/X/Y/Z category classification is no longer present on the page.
+We derive a synthetic tier from the `sector` data-attribute embedded on
+each card (Public Federal → national_top, Public Provincial → national_good,
+Private → national_average).
 
 Output: merges Pakistan subset into data/reference_data/university_rankings.json
 Schedule: quarterly
@@ -12,6 +16,7 @@ Schedule: quarterly
 import json
 import logging
 import os
+import re
 
 from bs4 import BeautifulSoup
 
@@ -22,13 +27,78 @@ logger = logging.getLogger(__name__)
 
 HEC_URL = "https://www.hec.gov.pk/english/universities/pages/recognised.aspx"
 
-# HEC category → tier mapping
-_CATEGORY_TIER = {
-    "W": "national_top",
-    "X": "national_good",
-    "Y": "national_average",
-    "Z": "national_below_average",
-}
+
+def _derive_tier(sector: str, chartered_by: str) -> str:
+    sector_l = sector.lower()
+    chartered_l = chartered_by.lower()
+    if "public" in sector_l:
+        if "government of pakistan" in chartered_l or "federal" in chartered_l:
+            return "national_top"
+        return "national_good"
+    if "private" in sector_l:
+        return "national_average"
+    return "national_unknown"
+
+
+def _extract_aliases(name: str) -> list[str]:
+    """
+    Extract an acronym from a name that contains it in parentheses, e.g.
+    "Abbottabad University of Science and Technology (AUST)" → ["AUST"]
+    Also applies a hard-coded map of well-known Pakistani university acronyms.
+    """
+    aliases: list[str] = []
+    # Explicit parenthetical acronym
+    m = re.search(r"\(([A-Z]{2,10})\)", name)
+    if m:
+        aliases.append(m.group(1))
+
+    # Normalize name: replace & → and, strip commas/extra spaces
+    name_lower = name.lower()
+    clean = re.sub(r"\s*\([^)]+\)\s*$", "", name_lower).strip()
+    name_norm = re.sub(r"&", " and ", name_lower)
+    name_norm = re.sub(r"[,.]", " ", name_norm)
+    name_norm = re.sub(r"\s+", " ", name_norm).strip()
+    clean_norm = re.sub(r"&", " and ", clean)
+    clean_norm = re.sub(r"[,.]", " ", clean_norm)
+    clean_norm = re.sub(r"\s+", " ", clean_norm).strip()
+
+    # Well-known acronyms for prominent Pakistani universities
+    _KNOWN_ALIASES: dict[str, list[str]] = {
+        "lahore university of management sciences": ["LUMS"],
+        "national university of sciences and technology": ["NUST"],
+        "national university of computer and emerging sciences": ["FAST", "NUCES"],
+        "fast national university of computer and emerging sciences": ["FAST", "NUCES"],
+        "ghulam ishaq khan institute of engineering sciences and technology": ["GIKI"],
+        "ghulam ishaq khan institute of engineering sciences": ["GIKI"],
+        "comsats university": ["COMSATS", "CUI"],
+        "ned university of engineering and technology": ["NED"],
+        "mehran university of engineering and technology": ["MUET"],
+        "institute of business administration": ["IBA"],
+        "sukkur iba university": ["IBA Sukkur"],
+        "institute of space technology": ["IST"],
+        "shaheed zulfikar ali bhutto institute of science and technology": ["SZABIST"],
+        "aga khan university": ["AKU"],
+        "air university": ["AU"],
+        "forman christian college": ["FCC"],
+        "quaid-i-azam university": ["QAU"],
+        "quaid-e-azam university": ["QAU"],
+        "university of karachi": ["KU"],
+        "university of the punjab": ["PU"],
+        "university of peshawar": ["UoP"],
+    }
+    for pattern, extra_aliases in _KNOWN_ALIASES.items():
+        # Use exact phrase match (startswith, endswith, or equals) to avoid substring false positives
+        if (
+            name_norm == pattern
+            or clean_norm == pattern
+            or name_norm.startswith(pattern + " ")
+            or clean_norm.startswith(pattern + " ")
+        ):
+            for alias in extra_aliases:
+                if alias not in aliases:
+                    aliases.append(alias)
+
+    return aliases
 
 
 def _load_existing_rankings() -> list[dict]:
@@ -59,73 +129,77 @@ def run() -> int:
     soup = BeautifulSoup(response.text, "lxml")
     universities: list[dict] = []
 
-    # HEC page renders one or more tables — iterate all rows to find universities
-    # The category is carried in section headers (h2/h3/th spanning the row) or
-    # as a repeated column.  We use a best-effort approach: scan every <tr> and
-    # detect category from heading rows.
+    # The HEC page now uses a card-based layout.
+    # Pattern: <li class="card ... university-content-control" data-position="Name">
+    #              <div class="desc">Name</div>
+    #              <ul class="card-actions">
+    #                  <li sector="Public" charteredby="..." city="..." province="...">Province</li>
+    #              </ul>
+    #          </li>
+    cards = soup.find_all("li", class_=lambda c: c and "university-content-control" in c)
 
-    current_category = ""
-    for element in soup.find_all(["h2", "h3", "h4", "tr"]):
-        tag = element.name
-        text = element.get_text(separator=" ", strip=True)
-
-        if tag in ("h2", "h3", "h4"):
-            # Detect category headings like "Category W" / "W Category"
-            for cat in ("W", "X", "Y", "Z"):
-                if f"category {cat}".lower() in text.lower() or f"cat {cat}".lower() in text.lower():
-                    current_category = cat
-                    break
-            continue
-
-        # It's a <tr>
-        cells = element.find_all(["td", "th"])
-        if not cells:
-            continue
-
-        cell_texts = [c.get_text(strip=True) for c in cells]
-
-        # Detect sub-headers inside the table that announce a category
-        joined = " ".join(cell_texts).lower()
-        for cat in ("W", "X", "Y", "Z"):
-            if f"category {cat}".lower() in joined or (
-                len(cell_texts) == 1 and cell_texts[0].strip().upper() == cat
-            ):
-                current_category = cat
-                break
-
-        # A data row typically has: serial_no, university_name, [city, sector, …]
-        if len(cell_texts) < 2:
-            continue
-
-        # Skip fully-header rows
-        first = cell_texts[0].strip()
-        if not first or not first[0].isdigit():
-            # Could still be a name-only row produced by merged cells
-            if len(cell_texts) >= 2 and cell_texts[1].strip():
-                name = cell_texts[1].strip()
-            else:
+    if not cards:
+        # Fallback: try <div class='desc'> only (still gives us names)
+        desc_divs = soup.find_all("div", class_="desc")
+        logger.info(f"HEC scraper: card selector found 0 cards, fallback to {len(desc_divs)} desc divs")
+        for div in desc_divs:
+            name = div.get_text(strip=True)
+            if not name or len(name) < 5:
                 continue
-        else:
-            name = cell_texts[1].strip() if len(cell_texts) > 1 else ""
-
-        if not name or len(name) < 5:
-            continue
-
-        # Avoid duplicates within this scrape run
-        if any(u["name"] == name for u in universities):
-            continue
-
-        universities.append(
-            {
+            if any(u["name"] == name for u in universities):
+                continue
+            universities.append({
                 "name": name,
                 "aliases": [],
                 "country": "Pakistan",
-                "hec_category": current_category if current_category else "N/A",
+                "hec_category": "N/A",
                 "qs_rank": "unranked",
                 "the_rank": "unranked",
-                "tier": _CATEGORY_TIER.get(current_category, "national_unknown"),
-            }
-        )
+                "tier": "national_unknown",
+                "province": "",
+                "sector": "",
+            })
+    else:
+        for card in cards:
+            name_div = card.find("div", class_="desc")
+            if not name_div:
+                name = card.get("data-position", "").strip()
+            else:
+                name = name_div.get_text(strip=True)
+
+            if not name or len(name) < 5:
+                continue
+            if any(u["name"] == name for u in universities):
+                continue
+
+            # Extract attributes from the inner <li> inside card-actions
+            info_li = card.find("li", attrs={"sector": True})
+            sector = ""
+            chartered_by = ""
+            province = ""
+            city = ""
+            if info_li:
+                sector = info_li.get("sector", "")
+                chartered_by = info_li.get("charteredby", "")
+                province = info_li.get("province", "")
+                city = info_li.get("city", "")
+
+            aliases = _extract_aliases(name)
+            # Strip the parenthetical acronym from the stored name for cleanliness
+            clean_name = re.sub(r"\s*\([A-Z]{2,10}\)\s*$", "", name).strip()
+
+            universities.append({
+                "name": clean_name,
+                "aliases": aliases,
+                "country": "Pakistan",
+                "hec_category": "N/A",
+                "qs_rank": "unranked",
+                "the_rank": "unranked",
+                "tier": _derive_tier(sector, chartered_by),
+                "province": province,
+                "city": city,
+                "sector": sector,
+            })
 
     if not universities:
         logger.warning("HEC scraper: no universities found — page structure may have changed")

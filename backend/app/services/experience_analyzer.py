@@ -158,6 +158,7 @@ def _detect_overlaps(
 def _detect_experience_gaps(
     experience: list[ExperienceRecord],
     education: list[EducationRecord],
+    publications: list | None = None,
 ) -> list[ExperienceGap]:
     """Identify gaps between consecutive employment periods."""
     parsed = []
@@ -184,7 +185,7 @@ def _detect_experience_gaps(
 
         if gap_months > 3:  # More than 3 months gap is flagged
             justified, justification = _check_exp_gap_justification(
-                parsed[i]["end"], parsed[i + 1]["start"], education
+                parsed[i]["end"], parsed[i + 1]["start"], education, publications
             )
             gaps.append(ExperienceGap(
                 from_role=parsed[i]["label"],
@@ -203,23 +204,51 @@ def _check_exp_gap_justification(
     gap_start: tuple[int, int],
     gap_end: tuple[int, int],
     education: list[EducationRecord],
+    publications: list | None = None,
 ) -> tuple[bool, str]:
-    """Check if a professional gap is justified by education enrollment."""
+    """Check if a professional gap is justified by education enrollment or publications."""
     gap_start_m = _date_to_months(gap_start)
     gap_end_m = _date_to_months(gap_end)
+    gap_start_year = gap_start[0]
+    gap_end_year = gap_end[0]
     justifications = []
 
+    # Estimated enrollment duration per degree level (in months, used when start_year is missing)
+    _DEGREE_DURATION = {"PhD": 48, "PG": 24, "UG": 48, "HSSC": 12, "SSE": 12}
+
     for edu in education:
-        if edu.start_year and edu.end_year:
+        if not edu.end_year:
+            continue
+        edu_end = edu.end_year * 12 + 12
+        if edu.start_year:
             edu_start = edu.start_year * 12 + 1
-            edu_end = edu.end_year * 12 + 12
-            if edu_start <= gap_end_m and edu_end >= gap_start_m:
-                justifications.append(
-                    f"Pursuing {edu.degree} at {edu.institution} ({edu.start_year}-{edu.end_year})"
-                )
+        else:
+            # start_year unknown — estimate backwards from end_year by degree duration
+            est_duration = _DEGREE_DURATION.get(edu.level, 36)
+            edu_start = edu_end - est_duration
+
+        if edu_start <= gap_end_m and edu_end >= gap_start_m:
+            year_range = (
+                f"{edu.start_year}–{edu.end_year}"
+                if edu.start_year
+                else f"completed {edu.end_year}"
+            )
+            justifications.append(
+                f"Pursuing {edu.degree} at {edu.institution} ({year_range})"
+            )
+
+    # Check publications during the gap period
+    if publications:
+        pub_years_in_gap = sorted(
+            {p.year for p in publications if p.year and gap_start_year <= p.year <= gap_end_year}
+        )
+        if pub_years_in_gap:
+            justifications.append(
+                f"Published research during this period ({', '.join(str(y) for y in pub_years_in_gap)})"
+            )
 
     if justifications:
-        return True, "Justified by education: " + "; ".join(justifications)
+        return True, "Justified by: " + "; ".join(justifications)
     return False, "No educational or professional activity found during this gap."
 
 
@@ -319,7 +348,7 @@ def analyze_experience_rule_based(doc: CandidateDocument) -> ExperienceAnalysis:
         current_role = f"{experience[0].title} at {experience[0].organization}"
 
     # Gaps
-    gaps = _detect_experience_gaps(experience, education)
+    gaps = _detect_experience_gaps(experience, education, doc.publications)
 
     # Overlaps
     overlaps = _detect_overlaps(education, experience)

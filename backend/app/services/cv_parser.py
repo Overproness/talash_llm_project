@@ -133,7 +133,16 @@ def _extract_name(lines: list[str]) -> str:
 
 
 def _normalize_score(raw: str) -> Optional[float]:
-    """Convert a raw marks/CGPA string to a 0-100 percentage."""
+    """Convert a raw marks/CGPA string to a 0-100 percentage.
+
+    Pakistani academic CV heuristic (integer-part digit count):
+      - Explicit "CGPA X/Y" or "X/Y" → proportional conversion
+      - Explicit "X%"               → direct percentage
+      - Bare value, int-part 1 digit (0.x – 9.99) → GPA out of 4.0
+      - Bare value, int-part 2 digits (10 – 99.x)  → direct percentage
+      - Bare value == 100               → 100%
+      - Bare value > 100                → raw marks out of 1100 (SSC/HSSC boards)
+    """
     if not raw:
         return None
     cgpa_match = _CGPA_RE.search(raw)
@@ -145,10 +154,18 @@ def _normalize_score(raw: str) -> Optional[float]:
     pct_match = _PERCENT_RE.search(raw)
     if pct_match:
         return float(pct_match.group(1))
-    # Bare number like "3.7" — assume CGPA/4.0
-    bare = re.search(r"\b([0-4]\.\d{1,2})\b", raw)
+    # Bare number — classify by magnitude of integer part
+    bare = re.search(r"\b(\d{1,4}(?:\.\d{1,2})?)\b", raw)
     if bare:
-        return round((float(bare.group(1)) / 4.0) * 100, 2)
+        val = float(bare.group(1))
+        if val == 0:
+            return None
+        if val <= 9.99:       # 1-digit integer part → GPA/4.0
+            return round((val / 4.0) * 100, 2)
+        if val <= 100.0:      # 2-digit integer part → direct percentage
+            return round(val, 2)
+        # 3+-digit → raw marks assumed out of 1100 (Pakistani board scale)
+        return round((val / 1100.0) * 100, 2)
     return None
 
 
@@ -165,6 +182,12 @@ def rule_based_extract(text: str) -> dict:
     urls = _URL_RE.findall(text)
     linkedin = next((u for u in urls if "linkedin" in u), "")
 
+    # Present Employment line (e.g. "Present Employment: Unemployed")
+    _present_emp_match = re.search(
+        r"Present\s+Employment\s*:\s*([^\n]{1,120})", text, re.IGNORECASE
+    )
+    present_employment = _present_emp_match.group(1).strip() if _present_emp_match else ""
+
     personal_info = {
         "name": _extract_name(lines),
         "email": email[0] if email else "",
@@ -172,6 +195,7 @@ def rule_based_extract(text: str) -> dict:
         "location": "",
         "linkedin": linkedin,
         "website": next((u for u in urls if "linkedin" not in u), ""),
+        "present_employment": present_employment,
     }
 
     # ── Education ──────────────────────────────────────────────────────────────
@@ -508,6 +532,7 @@ async def parse_cv(pdf_path: str, processed_dir: str) -> CandidateDocument:
         location=pi_data.get("location", ""),
         linkedin=pi_data.get("linkedin", ""),
         website=pi_data.get("website", ""),
+        present_employment=pi_data.get("present_employment", ""),
     )
 
     education = [EducationRecord(**e) for e in extracted.get("education", []) if isinstance(e, dict)]

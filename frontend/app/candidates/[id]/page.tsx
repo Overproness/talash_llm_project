@@ -90,6 +90,26 @@ export default function CandidateProfilePage() {
   const researchSummary = candidate.research_summary;
   const researchProfile = candidate.research_profile;
 
+  // Find the current/most-recent role: prefer one whose end_date is "present"
+  const _PRESENT_TOKENS = ["present", "current", "ongoing", "till date", "to date", ""];
+  const _isUnemployed = /unemployed|not\s+employed|not\s+applicable/i.test(
+    pi.present_employment ?? ""
+  );
+  const currentExp = _isUnemployed
+    ? null
+    : candidate.experience.find((e) =>
+        _PRESENT_TOKENS.includes((e.end_date ?? "").trim().toLowerCase())
+      ) ??
+      (candidate.experience.length > 0
+        ? [...candidate.experience].sort((a, b) => {
+            const yr = (d: string) => {
+              const m = d.match(/(19|20)\d{2}/);
+              return m ? parseInt(m[0]) : 0;
+            };
+            return yr(b.start_date) - yr(a.start_date);
+          })[0]
+        : null);
+
   const TABS: { key: Tab; label: string; icon: string }[] = [
     { key: "overview", label: "Overview", icon: "dashboard" },
     { key: "education", label: "Education", icon: "school" },
@@ -137,12 +157,14 @@ export default function CandidateProfilePage() {
                 <h1 className="text-2xl font-bold text-on-surface">
                   {pi.name || candidate.filename}
                 </h1>
-                {candidate.experience.length > 0 && (
+                {_isUnemployed ? (
+                  <p className="text-on-surface-variant text-sm">Unemployed</p>
+                ) : currentExp ? (
                   <p className="text-on-surface-variant text-sm">
-                    {candidate.experience[0].title} •{" "}
-                    {candidate.experience[0].organization}
+                    {currentExp.title} •{" "}
+                    {currentExp.organization}
                   </p>
-                )}
+                ) : null}
                 <div className="flex flex-wrap items-center gap-4 text-xs text-outline mt-2">
                   {pi.email && (
                     <span className="flex items-center gap-1">
@@ -569,7 +591,7 @@ export default function CandidateProfilePage() {
                             )}
                           </td>
                           <td className="px-5 py-3 text-on-surface-variant">
-                            {edu.institution || "—"}
+                            {edu.institution || edu.board_or_affiliation || "—"}
                           </td>
                           <td className="px-5 py-3 text-on-surface-variant">
                             {edu.start_year ?? "?"} — {edu.end_year ?? "?"}

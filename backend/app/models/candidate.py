@@ -12,6 +12,7 @@ class PersonalInfo(BaseModel):
     location: str = ""
     linkedin: str = ""
     website: str = ""
+    present_employment: str = ""   # Raw "Present Employment" value from CV (e.g. "Unemployed")
 
 
 class EducationRecord(BaseModel):

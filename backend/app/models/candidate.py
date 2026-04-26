@@ -297,6 +297,7 @@ class CandidateListItem(BaseModel):
     skills_count: int
     publications_count: int
     missing_fields_count: int
+    edu_level: Optional[str] = None
 
 
 class UploadResponse(BaseModel):

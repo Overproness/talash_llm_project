@@ -57,26 +57,64 @@ export default function HomePage() {
         ),
       );
       try {
-        setFiles((prev) =>
-          prev.map((f) =>
-            f.file.name === item.file.name
-              ? { ...f, status: "parsing", message: "Parsing CV with AI…" }
-              : f,
-          ),
-        );
         const res = await api.uploadCV(item.file);
         setFiles((prev) =>
           prev.map((f) =>
             f.file.name === item.file.name
               ? {
                   ...f,
-                  status: "done",
-                  message: res.message,
+                  status: "parsing",
+                  message: "Parsing CV with AI…",
                   candidateId: res.candidate_id,
                 }
               : f,
           ),
         );
+
+        // Poll until the backend finishes processing
+        const candidateId = res.candidate_id;
+        let attempts = 0;
+        const maxAttempts = 120; // up to ~2 min (120 × 1 s)
+        const poll = async () => {
+          if (attempts >= maxAttempts) {
+            setFiles((prev) =>
+              prev.map((f) =>
+                f.candidateId === candidateId
+                  ? { ...f, status: "error", message: "Timed out waiting for analysis." }
+                  : f,
+              ),
+            );
+            return;
+          }
+          attempts++;
+          try {
+            const candidate = await api.getCandidate(candidateId);
+            const status = candidate.processing_status;
+            if (status === "done") {
+              setFiles((prev) =>
+                prev.map((f) =>
+                  f.candidateId === candidateId
+                    ? { ...f, status: "done", message: "CV parsed and analysed successfully." }
+                    : f,
+                ),
+              );
+            } else if (status === "failed") {
+              const error = candidate.processing_error ?? "Processing failed.";
+              setFiles((prev) =>
+                prev.map((f) =>
+                  f.candidateId === candidateId
+                    ? { ...f, status: "error", message: error }
+                    : f,
+                ),
+              );
+            } else {
+              setTimeout(poll, 1000);
+            }
+          } catch {
+            setTimeout(poll, 2000);
+          }
+        };
+        setTimeout(poll, 1000);
       } catch (err: unknown) {
         const errorMessage =
           err instanceof Error ? err.message : "Upload failed";

@@ -159,6 +159,7 @@ IMPORTANT PARSING RULES:
 - marks_or_cgpa: capture the raw value exactly as written (e.g. "3.33", "69.84", "65.45%").
 - employment_type for academic roles (Lecturer, Professor, etc.) should be "Teaching".
 - pub_type: use "journal" for journal papers, "conference" for conference papers.
+- present_employment: copy the literal text from the "Present Employment:" field in the CV header (e.g. "Unemployed", "Associate Professor at XYZ University since 01/01/2025"). Leave empty if not present.
 - For skills: If there is an explicit "Skills" or "Technical Skills" section, extract those items. If no such section exists, INFER technical skills from: (1) education specialization fields (e.g. "Wireless Communication, Convex Optimization" → ["Wireless Communication", "Convex Optimization"]), (2) publication titles and topics (e.g. papers about "NOMA", "5G", "Machine Learning" → add those as skills), (3) job responsibilities. Always populate the skills array — never leave it empty if any technical content exists in the CV.
 
 CV TEXT:
@@ -172,7 +173,8 @@ Return ONLY a valid JSON object with this exact structure (use empty strings/arr
     "phone": "",
     "location": "",
     "linkedin": "",
-    "website": ""
+    "website": "",
+    "present_employment": ""
   }},
   "education": [
     {{

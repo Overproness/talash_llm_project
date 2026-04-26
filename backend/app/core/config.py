@@ -1,6 +1,15 @@
+import os
+
 from pydantic_settings import BaseSettings
-from pydantic import ConfigDict
+from pydantic import ConfigDict, model_validator
 from functools import lru_cache
+
+
+def _vercel_path(relative: str) -> str:
+    """Return /tmp/<relative> when running on Vercel, otherwise <relative>."""
+    if os.environ.get("VERCEL"):
+        return f"/tmp/{relative}"
+    return relative
 
 
 class Settings(BaseSettings):
@@ -36,6 +45,19 @@ class Settings(BaseSettings):
     reference_data_dir: str = "data/reference_data"
     max_file_size_mb: int = 50
     api_prefix: str = "/api"
+
+    @model_validator(mode="after")
+    def _apply_vercel_paths(self) -> "Settings":
+        """On Vercel only /tmp is writable — redirect all storage dirs there."""
+        import os
+        if os.environ.get("VERCEL"):
+            if self.cv_upload_dir == "data/cv_uploads":
+                self.cv_upload_dir = "/tmp/cv_uploads"
+            if self.processed_dir == "data/processed":
+                self.processed_dir = "/tmp/processed"
+            if self.reference_data_dir == "data/reference_data":
+                self.reference_data_dir = "/tmp/reference_data"
+        return self
 
     # ── External APIs ─────────────────────────────────────────────────────────
     # Elsevier / Scopus API key (note: env var uses typo "elseivier_api_key")

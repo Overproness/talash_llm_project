@@ -57,7 +57,10 @@ def mark_scraper_error(scraper_name: str, error: str) -> None:
     existing["last_error_time"] = datetime.now(timezone.utc).isoformat()
     existing["status"] = "error"
     meta[scraper_name] = existing
-    _save_metadata(meta)
+    try:
+        _save_metadata(meta)
+    except OSError as e:
+        logger.warning(f"Could not persist error metadata for {scraper_name}: {e}")
 
 
 def _atomic_write_json(dest_path: str, data: Any) -> None:

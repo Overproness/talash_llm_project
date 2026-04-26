@@ -80,7 +80,11 @@ export default function HomePage() {
             setFiles((prev) =>
               prev.map((f) =>
                 f.candidateId === candidateId
-                  ? { ...f, status: "error", message: "Timed out waiting for analysis." }
+                  ? {
+                      ...f,
+                      status: "error",
+                      message: "Timed out waiting for analysis.",
+                    }
                   : f,
               ),
             );
@@ -94,7 +98,11 @@ export default function HomePage() {
               setFiles((prev) =>
                 prev.map((f) =>
                   f.candidateId === candidateId
-                    ? { ...f, status: "done", message: "CV parsed and analysed successfully." }
+                    ? {
+                        ...f,
+                        status: "done",
+                        message: "CV parsed and analysed successfully.",
+                      }
                     : f,
                 ),
               );

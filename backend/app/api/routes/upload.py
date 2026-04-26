@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.config import get_settings
@@ -19,8 +19,46 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+async def _process_cv_background(
+    dest_path: str,
+    candidate_id: str,
+    db: AsyncIOMotorDatabase,
+    settings,
+) -> None:
+    """Parse and analyse a CV in the background, updating MongoDB when done."""
+    try:
+        parsed: CandidateDocument = await parse_cv(dest_path, settings.processed_dir)
+        update_data = parsed.model_dump(exclude={"filename", "file_path"})
+        await db.candidates.update_one(
+            {"_id": ObjectId(candidate_id)},
+            {"$set": update_data},
+        )
+
+        try:
+            analysis_results = await run_full_analysis(parsed)
+            analysis_results["processing_status"] = "done"
+            await db.candidates.update_one(
+                {"_id": ObjectId(candidate_id)},
+                {"$set": analysis_results},
+            )
+            logger.info(f"Analysis completed for {dest_path}")
+        except Exception as ae:
+            logger.warning(f"Analysis failed for {dest_path}: {ae}")
+            await db.candidates.update_one(
+                {"_id": ObjectId(candidate_id)},
+                {"$set": {"processing_status": "done", "processing_error": str(ae)}},
+            )
+    except Exception as e:
+        logger.error(f"Parsing failed for {dest_path}: {e}")
+        await db.candidates.update_one(
+            {"_id": ObjectId(candidate_id)},
+            {"$set": {"processing_status": "failed", "processing_error": str(e)}},
+        )
+
+
 @router.post("/upload", response_model=UploadResponse)
 async def upload_cv(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
@@ -53,7 +91,7 @@ async def upload_cv(
         shutil.copyfileobj(file.file, f)
     logger.info(f"Saved uploaded file to {dest_path}")
 
-    # Insert a pending record so we can return an ID immediately
+    # Insert a pending record and return immediately
     pending_doc = {
         "filename": Path(dest_path).name,
         "file_path": dest_path,
@@ -76,42 +114,14 @@ async def upload_cv(
     result = await db.candidates.insert_one(pending_doc)
     candidate_id = str(result.inserted_id)
 
-    # Parse CV synchronously (M1 — simple, no background task)
-    try:
-        parsed: CandidateDocument = await parse_cv(dest_path, settings.processed_dir)
-        update_data = parsed.model_dump(exclude={"filename", "file_path"})
-        # Convert Pydantic sub-models to plain dicts for MongoDB
-        await db.candidates.update_one(
-            {"_id": ObjectId(candidate_id)},
-            {"$set": update_data},
-        )
-
-        # M2: Run full analysis pipeline (education, experience, research, summary)
-        try:
-            analysis_results = await run_full_analysis(parsed)
-            await db.candidates.update_one(
-                {"_id": ObjectId(candidate_id)},
-                {"$set": analysis_results},
-            )
-            logger.info(f"Analysis completed for {dest_path}")
-        except Exception as ae:
-            logger.warning(f"Analysis failed for {dest_path} (parsing still succeeded): {ae}")
-
-        status = "done"
-        score_info = f" Overall score: {analysis_results.get('overall_score', 'N/A')}." if 'analysis_results' in dir() else ""
-        message = f"CV parsed and analyzed successfully. Found {len(parsed.education)} education records, {len(parsed.publications)} publications.{score_info}"
-    except Exception as e:
-        logger.error(f"Parsing failed for {dest_path}: {e}")
-        await db.candidates.update_one(
-            {"_id": ObjectId(candidate_id)},
-            {"$set": {"processing_status": "failed", "processing_error": str(e)}},
-        )
-        status = "failed"
-        message = f"Parsing failed: {e}"
+    # Kick off parsing + analysis in the background (non-blocking)
+    background_tasks.add_task(
+        _process_cv_background, dest_path, candidate_id, db, settings
+    )
 
     return UploadResponse(
         candidate_id=candidate_id,
         filename=Path(dest_path).name,
-        status=status,
-        message=message,
+        status="processing",
+        message="CV uploaded successfully. Analysis is running in the background.",
     )

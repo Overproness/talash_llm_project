@@ -34,8 +34,10 @@ export default function EmailDraftsPage() {
     if (!drafts[id]) {
       setGenerating(id);
       try {
-        const draft = await api.getEmailDraft(id);
-        setDrafts((prev) => ({ ...prev, [id]: draft }));
+        const response = await api.getEmailDraft(id);
+        if (response.email_draft) {
+          setDrafts((prev) => ({ ...prev, [id]: response.email_draft! }));
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -47,8 +49,10 @@ export default function EmailDraftsPage() {
   const handleRegenerate = async (id: string) => {
     setGenerating(id);
     try {
-      const draft = await api.getEmailDraft(id);
-      setDrafts((prev) => ({ ...prev, [id]: draft }));
+      const response = await api.getEmailDraft(id);
+      if (response.email_draft) {
+        setDrafts((prev) => ({ ...prev, [id]: response.email_draft! }));
+      }
     } catch (e) {
       console.error(e);
     } finally {

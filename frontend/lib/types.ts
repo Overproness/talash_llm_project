@@ -249,6 +249,7 @@ export interface CandidateListItem {
   skills_count: number
   publications_count: number
   missing_fields_count: number
+  edu_level: string | null
 }
 
 export interface CandidateFull {

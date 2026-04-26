@@ -101,6 +101,17 @@ async def lifespan(app: FastAPI):
     await connect_db()
     logger.info("MongoDB connected")
 
+    # ── On Vercel, seed /tmp/reference_data from the bundled static files ───
+    import os, shutil
+    if os.environ.get("VERCEL"):
+        bundled = "data/reference_data"
+        target = settings.reference_data_dir  # /tmp/reference_data
+        if os.path.isdir(bundled) and not os.path.isdir(target):
+            try:
+                shutil.copytree(bundled, target, dirs_exist_ok=True)
+                logger.info(f"Seeded {target} from bundled {bundled}")
+            except Exception as _e:
+                logger.warning(f"Could not seed reference data to {target}: {_e}")
     # ── APScheduler ──────────────────────────────────────────────────────────
     # Monthly job: 1st of every month at 02:00 UTC
     _scheduler.add_job(

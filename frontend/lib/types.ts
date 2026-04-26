@@ -7,6 +7,7 @@ export interface PersonalInfo {
   location: string
   linkedin: string
   website: string
+  present_employment: string
 }
 
 export interface EducationRecord {

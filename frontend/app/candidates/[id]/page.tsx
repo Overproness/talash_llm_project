@@ -91,14 +91,21 @@ export default function CandidateProfilePage() {
   const researchProfile = candidate.research_profile;
 
   // Find the current/most-recent role: prefer one whose end_date is "present"
-  const _PRESENT_TOKENS = ["present", "current", "ongoing", "till date", "to date", ""];
+  const _PRESENT_TOKENS = [
+    "present",
+    "current",
+    "ongoing",
+    "till date",
+    "to date",
+    "",
+  ];
   const _isUnemployed = /unemployed|not\s+employed|not\s+applicable/i.test(
-    pi.present_employment ?? ""
+    pi.present_employment ?? "",
   );
   const currentExp = _isUnemployed
     ? null
-    : candidate.experience.find((e) =>
-        _PRESENT_TOKENS.includes((e.end_date ?? "").trim().toLowerCase())
+    : (candidate.experience.find((e) =>
+        _PRESENT_TOKENS.includes((e.end_date ?? "").trim().toLowerCase()),
       ) ??
       (candidate.experience.length > 0
         ? [...candidate.experience].sort((a, b) => {
@@ -108,7 +115,7 @@ export default function CandidateProfilePage() {
             };
             return yr(b.start_date) - yr(a.start_date);
           })[0]
-        : null);
+        : null));
 
   const TABS: { key: Tab; label: string; icon: string }[] = [
     { key: "overview", label: "Overview", icon: "dashboard" },
@@ -161,8 +168,7 @@ export default function CandidateProfilePage() {
                   <p className="text-on-surface-variant text-sm">Unemployed</p>
                 ) : currentExp ? (
                   <p className="text-on-surface-variant text-sm">
-                    {currentExp.title} •{" "}
-                    {currentExp.organization}
+                    {currentExp.title} • {currentExp.organization}
                   </p>
                 ) : null}
                 <div className="flex flex-wrap items-center gap-4 text-xs text-outline mt-2">

@@ -19,6 +19,17 @@ def _doc_to_list_item(doc: dict) -> CandidateListItem:
     pi = doc.get("personal_info", {})
     edu_analysis = doc.get("education_analysis", {})
     exp_analysis = doc.get("experience_analysis", {})
+    # Derive highest edu level from education records
+    _LEVEL_ORDER = ["phd", "pg", "masters", "ms", "mphil", "ug", "bachelors", "bs", "be"]
+    edu_records = doc.get("education", [])
+    edu_levels = [r.get("level", "").lower() for r in edu_records if isinstance(r, dict) and r.get("level")]
+    edu_level = None
+    for lvl in _LEVEL_ORDER:
+        if lvl in edu_levels:
+            edu_level = lvl.upper()
+            break
+    if not edu_level and edu_levels:
+        edu_level = edu_levels[0].upper()
     return CandidateListItem(
         id=str(doc["_id"]),
         name=pi.get("name", "") or doc.get("filename", "Unknown"),
@@ -31,6 +42,7 @@ def _doc_to_list_item(doc: dict) -> CandidateListItem:
         skills_count=len(doc.get("skills", [])),
         publications_count=len(doc.get("publications", [])),
         missing_fields_count=len(doc.get("missing_fields", [])),
+        edu_level=edu_level,
     )
 
 

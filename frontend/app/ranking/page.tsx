@@ -35,8 +35,7 @@ function ScoreCell({
   value: number | null;
   color?: string;
 }) {
-  if (value == null)
-    return <span className="text-outline text-xs">—</span>;
+  if (value == null) return <span className="text-outline text-xs">—</span>;
   return (
     <div className="flex items-center gap-2">
       <div className="flex-1 h-1.5 rounded-full bg-surface-container min-w-[40px]">
@@ -406,15 +405,11 @@ export default function RankingPage() {
                 </p>
                 <p>
                   Overall scores are weighted composites:{" "}
-                  <strong className="text-emerald-600">
-                    Education 30%
-                  </strong>
-                  ,{" "}
+                  <strong className="text-emerald-600">Education 30%</strong>,{" "}
                   <strong className="text-violet-600">
                     Research Quality 30%
                   </strong>
-                  ,{" "}
-                  <strong className="text-blue-600">Experience 25%</strong>,
+                  , <strong className="text-blue-600">Experience 25%</strong>,
                   Skills 5%, and Profile Completeness 10%. Research scores
                   factor in journal quartiles (Q1/Q2), CORE conference rankings
                   (A*/A), Scopus indexing, authorship roles, topic variability,

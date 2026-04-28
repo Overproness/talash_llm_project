@@ -1047,11 +1047,12 @@ export default function CandidateProfilePage() {
                         <th className="text-center px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
                           Link
                         </th>
-                        {researchProfile && researchProfile.book_quality.length > 0 && (
-                          <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                            Quality
-                          </th>
-                        )}
+                        {researchProfile &&
+                          researchProfile.book_quality.length > 0 && (
+                            <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                              Quality
+                            </th>
+                          )}
                       </tr>
                     </thead>
                     <tbody>
@@ -1251,9 +1252,9 @@ export default function CandidateProfilePage() {
                 </div>
                 {candidate.supervision.length === 0 ? (
                   <p className="text-sm text-on-surface-variant px-6 py-6">
-                    No supervision records found. Supervised student details
-                    are usually not on a CV — request from the candidate via
-                    Email Drafts if needed.
+                    No supervision records found. Supervised student details are
+                    usually not on a CV — request from the candidate via Email
+                    Drafts if needed.
                   </p>
                 ) : (
                   <table className="w-full text-sm">

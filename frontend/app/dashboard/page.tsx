@@ -298,6 +298,7 @@ export default function DashboardPage() {
                       <div className="flex gap-4 text-[10px] text-on-surface-variant">
                         <span>Edu: {sd.education_score ?? "—"}</span>
                         <span>Exp: {sd.experience_score ?? "—"}</span>
+                        <span>Res: {sd.research_score ?? "—"}</span>
                       </div>
                     </div>
                   ))}

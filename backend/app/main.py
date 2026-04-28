@@ -187,9 +187,9 @@ app.add_middleware(
 PREFIX = get_settings().api_prefix
 app.include_router(health.router, prefix=PREFIX, tags=["health"])
 app.include_router(upload.router, prefix=PREFIX, tags=["upload"])
+app.include_router(analysis.router, prefix=PREFIX, tags=["analysis"])
 app.include_router(candidates.router, prefix=PREFIX, tags=["candidates"])
 app.include_router(settings_routes.router, prefix=PREFIX, tags=["settings"])
-app.include_router(analysis.router, prefix=PREFIX, tags=["analysis"])
 app.include_router(admin_routes.router, prefix=PREFIX, tags=["admin"])
 
 

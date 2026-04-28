@@ -299,6 +299,29 @@ export interface DashboardStats {
     overall_score: number | null
     education_score: number | null
     experience_score: number | null
+    research_score: number | null
   }>
   missing_info_candidates: Array<{ name: string; missing_count: number }>
+}
+
+export interface RankedCandidate {
+  rank_position: number
+  id: string
+  name: string
+  filename: string
+  overall_score: number | null
+  education_score: number | null
+  experience_score: number | null
+  research_score: number | null
+  publications_count: number
+  skills_count: number
+  missing_fields_count: number
+  edu_level: string
+  primary_research_areas: string[]
+  summary: string
+}
+
+export interface RankingResponse {
+  total: number
+  rankings: RankedCandidate[]
 }

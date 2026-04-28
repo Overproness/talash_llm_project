@@ -270,6 +270,7 @@ export default function ComparePage() {
                       "Overall Score",
                       "Education Score",
                       "Experience Score",
+                      "Research Score",
                     ] as const
                   ).map((label) => (
                     <div key={label}>
@@ -284,6 +285,8 @@ export default function ComparePage() {
                               c.education_analysis?.education_score,
                             "Experience Score":
                               c.experience_analysis?.experience_score,
+                            "Research Score":
+                              c.research_profile?.research_score,
                           };
                           return (
                             <div key={c.id} className="flex items-center gap-3">

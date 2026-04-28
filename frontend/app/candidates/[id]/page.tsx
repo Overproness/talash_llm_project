@@ -13,6 +13,7 @@ type Tab =
   | "education"
   | "experience"
   | "publications"
+  | "portfolio"
   | "skills"
   | "analysis"
   | "raw";
@@ -122,6 +123,7 @@ export default function CandidateProfilePage() {
     { key: "education", label: "Education", icon: "school" },
     { key: "experience", label: "Experience", icon: "work" },
     { key: "publications", label: "Publications", icon: "article" },
+    { key: "portfolio", label: "Portfolio", icon: "collections_bookmark" },
     { key: "skills", label: "Skills", icon: "psychology" },
     { key: "analysis", label: "Analysis", icon: "analytics" },
     { key: "raw", label: "Raw CV", icon: "description" },
@@ -1001,6 +1003,321 @@ export default function CandidateProfilePage() {
                   </table>
                 </div>
               )}
+            </div>
+          )}
+
+          {tab === "portfolio" && (
+            <div className="space-y-6">
+              {/* Books */}
+              <section className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base">
+                      menu_book
+                    </span>
+                    Books Authored / Co-Authored
+                  </h3>
+                  <span className="text-xs text-on-surface-variant">
+                    {candidate.books.length} record(s)
+                  </span>
+                </div>
+                {candidate.books.length === 0 ? (
+                  <p className="text-sm text-on-surface-variant px-6 py-6">
+                    No books recorded.
+                  </p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-surface-container">
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Title
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Authors
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Publisher
+                        </th>
+                        <th className="text-center px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Year
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          ISBN
+                        </th>
+                        <th className="text-center px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Link
+                        </th>
+                        {researchProfile && researchProfile.book_quality.length > 0 && (
+                          <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                            Quality
+                          </th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {candidate.books.map((b, i) => {
+                        const bq = researchProfile?.book_quality?.[i];
+                        return (
+                          <tr
+                            key={i}
+                            className="border-t border-outline-variant/10"
+                          >
+                            <td className="px-5 py-3 font-medium text-on-surface">
+                              {b.title || "—"}
+                            </td>
+                            <td className="px-5 py-3 text-on-surface-variant text-xs">
+                              {b.authors.join(", ") || "—"}
+                            </td>
+                            <td className="px-5 py-3 text-on-surface-variant">
+                              {b.publisher || "—"}
+                            </td>
+                            <td className="px-5 py-3 text-center text-on-surface">
+                              {b.year ?? "—"}
+                            </td>
+                            <td className="px-5 py-3 text-xs text-on-surface-variant font-mono">
+                              {b.isbn || "—"}
+                            </td>
+                            <td className="px-5 py-3 text-center">
+                              {b.url ? (
+                                <a
+                                  href={b.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-primary hover:underline text-xs inline-flex items-center gap-1"
+                                >
+                                  Verify
+                                  <span className="material-symbols-outlined text-xs">
+                                    open_in_new
+                                  </span>
+                                </a>
+                              ) : (
+                                <span className="text-outline text-xs">—</span>
+                              )}
+                            </td>
+                            {researchProfile &&
+                              researchProfile.book_quality.length > 0 && (
+                                <td className="px-5 py-3">
+                                  {bq ? (
+                                    <span
+                                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                        bq.publisher_credibility ===
+                                        "top_academic"
+                                          ? "bg-emerald-100 text-emerald-800"
+                                          : bq.publisher_credibility ===
+                                              "reputable"
+                                            ? "bg-blue-100 text-blue-800"
+                                            : bq.publisher_credibility ===
+                                                "predatory"
+                                              ? "bg-red-100 text-red-800"
+                                              : "bg-surface-container text-on-surface-variant"
+                                      }`}
+                                    >
+                                      {bq.publisher_credibility.replace(
+                                        /_/g,
+                                        " ",
+                                      )}
+                                    </span>
+                                  ) : (
+                                    <span className="text-outline text-xs">
+                                      —
+                                    </span>
+                                  )}
+                                </td>
+                              )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </section>
+
+              {/* Patents */}
+              <section className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
+                    <span className="material-symbols-outlined text-base">
+                      lightbulb
+                    </span>
+                    Patents
+                  </h3>
+                  <span className="text-xs text-on-surface-variant">
+                    {candidate.patents.length} record(s)
+                  </span>
+                </div>
+                {candidate.patents.length === 0 ? (
+                  <p className="text-sm text-on-surface-variant px-6 py-6">
+                    No patents recorded.
+                  </p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-surface-container">
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Patent #
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Title
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Inventors
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Country
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Date
+                        </th>
+                        <th className="text-center px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Verify
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {candidate.patents.map((p, i) => (
+                        <tr
+                          key={i}
+                          className="border-t border-outline-variant/10"
+                        >
+                          <td className="px-5 py-3 font-mono text-xs text-on-surface">
+                            {p.patent_number || "—"}
+                          </td>
+                          <td className="px-5 py-3 font-medium text-on-surface">
+                            {p.title || "—"}
+                          </td>
+                          <td className="px-5 py-3 text-on-surface-variant text-xs">
+                            {p.inventors.join(", ") || "—"}
+                          </td>
+                          <td className="px-5 py-3 text-on-surface-variant">
+                            {p.country || "—"}
+                          </td>
+                          <td className="px-5 py-3 text-on-surface-variant whitespace-nowrap">
+                            {p.date || "—"}
+                          </td>
+                          <td className="px-5 py-3 text-center">
+                            {p.url ? (
+                              <a
+                                href={p.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-primary hover:underline text-xs inline-flex items-center gap-1"
+                              >
+                                Verify
+                                <span className="material-symbols-outlined text-xs">
+                                  open_in_new
+                                </span>
+                              </a>
+                            ) : (
+                              <span className="text-outline text-xs">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </section>
+
+              {/* Supervision */}
+              <section className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-outline-variant/20 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base">
+                        groups
+                      </span>
+                      Student Supervision
+                    </h3>
+                    {candidate.supervision.length > 0 && (
+                      <p className="text-[10px] text-on-surface-variant mt-1 ml-6">
+                        Main:{" "}
+                        {
+                          candidate.supervision.filter((s) =>
+                            (s.role || "").toLowerCase().includes("main"),
+                          ).length
+                        }{" "}
+                        · Co:{" "}
+                        {
+                          candidate.supervision.filter((s) =>
+                            (s.role || "").toLowerCase().includes("co"),
+                          ).length
+                        }
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-xs text-on-surface-variant">
+                    {candidate.supervision.length} record(s)
+                  </span>
+                </div>
+                {candidate.supervision.length === 0 ? (
+                  <p className="text-sm text-on-surface-variant px-6 py-6">
+                    No supervision records found. Supervised student details
+                    are usually not on a CV — request from the candidate via
+                    Email Drafts if needed.
+                  </p>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-surface-container">
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Student
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Degree
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Role
+                        </th>
+                        <th className="text-center px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Year
+                        </th>
+                        <th className="text-left px-5 py-3 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                          Thesis Title
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {candidate.supervision.map((s, i) => {
+                        const isMain = (s.role || "")
+                          .toLowerCase()
+                          .includes("main");
+                        return (
+                          <tr
+                            key={i}
+                            className="border-t border-outline-variant/10"
+                          >
+                            <td className="px-5 py-3 font-medium text-on-surface">
+                              {s.student_name || "—"}
+                            </td>
+                            <td className="px-5 py-3">
+                              <span className="text-[10px] bg-primary-fixed text-on-primary-fixed font-bold px-2 py-0.5 rounded-full uppercase">
+                                {s.degree || "—"}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3">
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                  isMain
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-blue-100 text-blue-800"
+                                }`}
+                              >
+                                {s.role || "—"}
+                              </span>
+                            </td>
+                            <td className="px-5 py-3 text-center text-on-surface">
+                              {s.year ?? "—"}
+                            </td>
+                            <td className="px-5 py-3 text-on-surface-variant text-xs">
+                              {s.thesis_title || "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </section>
             </div>
           )}
 

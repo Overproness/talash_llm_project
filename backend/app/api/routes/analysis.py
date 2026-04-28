@@ -151,6 +151,7 @@ async def get_dashboard_stats(
             "overall_score": 1,
             "education_score": "$education_analysis.education_score",
             "experience_score": "$experience_analysis.experience_score",
+            "research_score": "$research_profile.research_score",
         }},
     ]
     pipeline_missing = [
@@ -187,6 +188,7 @@ async def get_dashboard_stats(
             "overall_score": doc.get("overall_score"),
             "education_score": doc.get("education_score"),
             "experience_score": doc.get("experience_score"),
+            "research_score": doc.get("research_score"),
         })
 
     missing_info = []
@@ -205,3 +207,67 @@ async def get_dashboard_stats(
         "score_data": score_data,
         "missing_info_candidates": missing_info,
     }
+
+
+# ─── Candidate Ranking (Milestone 3 — Extra Credit) ──────────────────────────
+
+@router.get("/candidates/rank")
+async def rank_candidates(
+    limit: int = 50,
+    min_score: float = 0.0,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """Return analyzed candidates ranked by overall_score (descending).
+
+    Implements the quantifiable candidate ranking module — combines education,
+    experience, and research quality scores into a single rankable list.
+    """
+    pipeline = [
+        {"$match": {
+            "processing_status": "done",
+            "overall_score": {"$ne": None, "$gte": min_score},
+        }},
+        {"$project": {
+            "name": "$personal_info.name",
+            "filename": 1,
+            "overall_score": 1,
+            "education_score": "$education_analysis.education_score",
+            "experience_score": "$experience_analysis.experience_score",
+            "research_score": "$research_profile.research_score",
+            "publications_count": {"$size": {"$ifNull": ["$publications", []]}},
+            "skills_count": {"$size": {"$ifNull": ["$skills", []]}},
+            "missing_fields_count": {"$size": {"$ifNull": ["$missing_fields", []]}},
+            "primary_research_areas": {
+                "$ifNull": ["$research_profile.primary_research_areas", []]
+            },
+            "highest_qualification": {
+                "$ifNull": ["$education_analysis.highest_qualification", ""]
+            },
+            "summary": 1,
+        }},
+        {"$sort": {"overall_score": -1}},
+        {"$limit": max(1, min(limit, 200))},
+    ]
+
+    ranked: list[dict] = []
+    position = 0
+    async for doc in db.candidates.aggregate(pipeline):
+        position += 1
+        ranked.append({
+            "rank_position": position,
+            "id": str(doc["_id"]),
+            "name": doc.get("name") or doc.get("filename", "Unknown"),
+            "filename": doc.get("filename", ""),
+            "overall_score": doc.get("overall_score"),
+            "education_score": doc.get("education_score"),
+            "experience_score": doc.get("experience_score"),
+            "research_score": doc.get("research_score"),
+            "publications_count": doc.get("publications_count", 0),
+            "skills_count": doc.get("skills_count", 0),
+            "missing_fields_count": doc.get("missing_fields_count", 0),
+            "edu_level": doc.get("highest_qualification", ""),
+            "primary_research_areas": doc.get("primary_research_areas", []),
+            "summary": doc.get("summary", ""),
+        })
+
+    return {"total": len(ranked), "rankings": ranked}

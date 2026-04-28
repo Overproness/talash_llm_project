@@ -1,4 +1,4 @@
-import { CandidateFull, CandidateListItem, DashboardStats, EmailDraft, UploadResponse } from './types'
+import { CandidateFull, CandidateListItem, DashboardStats, EmailDraft, RankingResponse, UploadResponse } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL
   ? `${process.env.NEXT_PUBLIC_API_URL}/api`
@@ -82,4 +82,8 @@ export const api = {
 
   getDashboardStats: () =>
     request<DashboardStats>('/dashboard/stats'),
+
+  // Milestone 3: Candidate ranking module
+  rankCandidates: (limit = 50, minScore = 0) =>
+    request<RankingResponse>(`/candidates/rank?limit=${limit}&min_score=${minScore}`),
 }

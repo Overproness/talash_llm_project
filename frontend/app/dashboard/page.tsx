@@ -50,7 +50,10 @@ function DonutChart({
         fontWeight="bold"
         fill="#1e1b4b"
         className="rotate-90"
-        style={{ transform: `rotate(90deg)`, transformOrigin: `${cx}px ${cy}px` }}
+        style={{
+          transform: `rotate(90deg)`,
+          transformOrigin: `${cx}px ${cy}px`,
+        }}
       >
         {total.toLocaleString()}
       </text>
@@ -60,7 +63,10 @@ function DonutChart({
         textAnchor="middle"
         fontSize="7"
         fill="#6b7280"
-        style={{ transform: `rotate(90deg)`, transformOrigin: `${cx}px ${cy}px` }}
+        style={{
+          transform: `rotate(90deg)`,
+          transformOrigin: `${cx}px ${cy}px`,
+        }}
       >
         Total Papers
       </text>
@@ -85,24 +91,46 @@ export default function DashboardPage() {
 
   const done = candidates.filter((c) => c.processing_status === "done");
   const pending = candidates.filter(
-    (c) => c.processing_status === "pending" || c.processing_status === "processing"
+    (c) =>
+      c.processing_status === "pending" || c.processing_status === "processing",
   );
   const totalPubs = done.reduce((s, c) => s + c.publications_count, 0);
   const highMatch = done.filter((c) => (c.overall_score ?? 0) >= 80);
   const avgScore =
     done.length > 0
       ? Math.round(
-          done.reduce((s, c) => s + (c.overall_score ?? 0), 0) / done.length
+          done.reduce((s, c) => s + (c.overall_score ?? 0), 0) / done.length,
         )
       : 0;
 
   // Score distribution buckets
   const scoreBuckets = [
-    { label: "0-20", count: done.filter((c) => (c.overall_score ?? 0) < 20).length },
-    { label: "20-40", count: done.filter((c) => (c.overall_score ?? 0) >= 20 && (c.overall_score ?? 0) < 40).length },
-    { label: "40-60", count: done.filter((c) => (c.overall_score ?? 0) >= 40 && (c.overall_score ?? 0) < 60).length },
-    { label: "60-80", count: done.filter((c) => (c.overall_score ?? 0) >= 60 && (c.overall_score ?? 0) < 80).length },
-    { label: "80-100", count: done.filter((c) => (c.overall_score ?? 0) >= 80).length },
+    {
+      label: "0-20",
+      count: done.filter((c) => (c.overall_score ?? 0) < 20).length,
+    },
+    {
+      label: "20-40",
+      count: done.filter(
+        (c) => (c.overall_score ?? 0) >= 20 && (c.overall_score ?? 0) < 40,
+      ).length,
+    },
+    {
+      label: "40-60",
+      count: done.filter(
+        (c) => (c.overall_score ?? 0) >= 40 && (c.overall_score ?? 0) < 60,
+      ).length,
+    },
+    {
+      label: "60-80",
+      count: done.filter(
+        (c) => (c.overall_score ?? 0) >= 60 && (c.overall_score ?? 0) < 80,
+      ).length,
+    },
+    {
+      label: "80-100",
+      count: done.filter((c) => (c.overall_score ?? 0) >= 80).length,
+    },
   ];
   const bucketMax = Math.max(...scoreBuckets.map((b) => b.count), 1);
 
@@ -112,7 +140,9 @@ export default function DashboardPage() {
   const donutSegments =
     pubTypes.length > 0
       ? pubTypes.map(([, v], i) => ({
-          label: ["Q1 Journals", "Q2 Journals", "Q3 Journals", "Q4 Journals"][i] ?? `Type ${i + 1}`,
+          label:
+            ["Q1 Journals", "Q2 Journals", "Q3 Journals", "Q4 Journals"][i] ??
+            `Type ${i + 1}`,
           pct: v / (pubTotal || 1),
           color: DONUT_COLORS[i % DONUT_COLORS.length],
         }))
@@ -131,11 +161,15 @@ export default function DashboardPage() {
   // Analysis module scores
   const avgEdu =
     done.length > 0
-      ? Math.round(done.reduce((s, c) => s + (c.education_score ?? 0), 0) / done.length)
+      ? Math.round(
+          done.reduce((s, c) => s + (c.education_score ?? 0), 0) / done.length,
+        )
       : 0;
   const avgExp =
     done.length > 0
-      ? Math.round(done.reduce((s, c) => s + (c.experience_score ?? 0), 0) / done.length)
+      ? Math.round(
+          done.reduce((s, c) => s + (c.experience_score ?? 0), 0) / done.length,
+        )
       : 0;
   const avgRes = 0; // research_score not available in list view
   const moduleScores = [
@@ -147,8 +181,12 @@ export default function DashboardPage() {
 
   // Pipeline counts
   const uploading = candidates.length;
-  const parsing = candidates.filter((c) => c.processing_status !== "pending").length;
-  const analyzing = done.length + candidates.filter((c) => c.processing_status === "failed").length;
+  const parsing = candidates.filter(
+    (c) => c.processing_status !== "pending",
+  ).length;
+  const analyzing =
+    done.length +
+    candidates.filter((c) => c.processing_status === "failed").length;
   const scored = done.length;
   const ready = highMatch.length;
 
@@ -174,11 +212,12 @@ export default function DashboardPage() {
       <main className="ml-[220px] flex-1">
         <TopBar />
         <div className="pt-24 px-8 pb-12">
-
           {/* Page header */}
           <div className="mb-6 flex justify-between items-start">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Recruitment Dashboard</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Recruitment Dashboard
+              </h1>
               <p className="text-sm text-gray-500 mt-0.5">
                 Real-time recruitment intelligence and talent health metrics.
               </p>
@@ -242,9 +281,13 @@ export default function DashboardPage() {
                   {s.label}
                 </p>
                 <div className="flex items-end justify-between">
-                  <span className="text-3xl font-bold text-gray-900">{s.value}</span>
+                  <span className="text-3xl font-bold text-gray-900">
+                    {s.value}
+                  </span>
                   {s.badge && (
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.badgeColor}`}>
+                    <span
+                      className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.badgeColor}`}
+                    >
                       {s.badge}
                     </span>
                   )}
@@ -262,8 +305,14 @@ export default function DashboardPage() {
               </h2>
               <div className="flex items-end gap-3 h-36">
                 {scoreBuckets.map((b, i) => (
-                  <div key={b.label} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full flex items-end justify-center" style={{ height: "110px" }}>
+                  <div
+                    key={b.label}
+                    className="flex-1 flex flex-col items-center gap-1"
+                  >
+                    <div
+                      className="w-full flex items-end justify-center"
+                      style={{ height: "110px" }}
+                    >
                       <div
                         className="w-full rounded-t-md transition-all duration-500"
                         style={{
@@ -272,8 +321,8 @@ export default function DashboardPage() {
                             i === 3
                               ? "linear-gradient(180deg,#4f46e5,#818cf8)"
                               : i === 4
-                              ? "linear-gradient(180deg,#06b6d4,#67e8f9)"
-                              : "linear-gradient(180deg,#c7d2fe,#e0e7ff)",
+                                ? "linear-gradient(180deg,#06b6d4,#67e8f9)"
+                                : "linear-gradient(180deg,#c7d2fe,#e0e7ff)",
                           minHeight: "6px",
                         }}
                       />
@@ -290,10 +339,7 @@ export default function DashboardPage() {
                 Publication Quality Mix
               </h2>
               <div className="flex items-center gap-6">
-                <DonutChart
-                  segments={donutSegments}
-                  total={pubTotal || 4821}
-                />
+                <DonutChart segments={donutSegments} total={pubTotal || 4821} />
                 <div className="space-y-2">
                   {donutSegments.map((seg, i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -317,8 +363,13 @@ export default function DashboardPage() {
             {/* Top Candidates */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-sm font-semibold text-gray-700">Top Candidates</h2>
-                <a href="/candidates" className="text-xs text-indigo-600 font-medium hover:underline">
+                <h2 className="text-sm font-semibold text-gray-700">
+                  Top Candidates
+                </h2>
+                <a
+                  href="/candidates"
+                  className="text-xs text-indigo-600 font-medium hover:underline"
+                >
                   View All
                 </a>
               </div>
@@ -328,7 +379,9 @@ export default function DashboardPage() {
                 <span className="text-right">Score</span>
               </div>
               {topCandidates.length === 0 ? (
-                <p className="text-sm text-gray-400 py-4 text-center">No analyzed candidates yet</p>
+                <p className="text-sm text-gray-400 py-4 text-center">
+                  No analyzed candidates yet
+                </p>
               ) : (
                 <div className="space-y-2">
                   {topCandidates.map((c, i) => {
@@ -348,7 +401,11 @@ export default function DashboardPage() {
                         </span>
                         <div
                           className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-                          style={{ backgroundColor: ["#6366f1", "#0ea5e9", "#10b981"][i] }}
+                          style={{
+                            backgroundColor: ["#6366f1", "#0ea5e9", "#10b981"][
+                              i
+                            ],
+                          }}
                         >
                           {initials}
                         </div>
@@ -399,47 +456,70 @@ export default function DashboardPage() {
 
             {/* Recent Activity */}
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-700 mb-4">Recent Activity</h2>
+              <h2 className="text-sm font-semibold text-gray-700 mb-4">
+                Recent Activity
+              </h2>
               <div className="space-y-3">
-                {candidates.slice(0, 4).length === 0 ? (
-                  [
-                    { dot: "bg-indigo-500", text: "CV parsed: Dr. Ahmad", time: "2 mins ago" },
-                    { dot: "bg-cyan-500", text: "Email drafted: Prof. Khan", time: "15 mins ago" },
-                    { dot: "bg-emerald-500", text: "Analysis complete: 5 CVs", time: "1 hour ago" },
-                    { dot: "bg-amber-500", text: "New candidate sync: LinkedIn", time: "3 hours ago" },
-                  ].map((a, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${a.dot}`} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-gray-800 font-medium">{a.text}</p>
-                        <p className="text-[10px] text-gray-400">{a.time}</p>
+                {candidates.slice(0, 4).length === 0
+                  ? [
+                      {
+                        dot: "bg-indigo-500",
+                        text: "CV parsed: Dr. Ahmad",
+                        time: "2 mins ago",
+                      },
+                      {
+                        dot: "bg-cyan-500",
+                        text: "Email drafted: Prof. Khan",
+                        time: "15 mins ago",
+                      },
+                      {
+                        dot: "bg-emerald-500",
+                        text: "Analysis complete: 5 CVs",
+                        time: "1 hour ago",
+                      },
+                      {
+                        dot: "bg-amber-500",
+                        text: "New candidate sync: LinkedIn",
+                        time: "3 hours ago",
+                      },
+                    ].map((a, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                        <span
+                          className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${a.dot}`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-gray-800 font-medium">
+                            {a.text}
+                          </p>
+                          <p className="text-[10px] text-gray-400">{a.time}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  candidates.slice(0, 4).map((c) => (
-                    <div key={c.id} className="flex items-start gap-3">
-                      <span
-                        className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                          c.processing_status === "done"
-                            ? "bg-emerald-500"
-                            : c.processing_status === "failed"
-                            ? "bg-red-400"
-                            : "bg-amber-400"
-                        }`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-gray-800 font-medium truncate">
-                          CV {c.processing_status === "done" ? "parsed" : "uploaded"}:{" "}
-                          {c.name || c.filename}
-                        </p>
-                        <p className="text-[10px] text-gray-400">
-                          {c.processing_status}
-                        </p>
+                    ))
+                  : candidates.slice(0, 4).map((c) => (
+                      <div key={c.id} className="flex items-start gap-3">
+                        <span
+                          className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                            c.processing_status === "done"
+                              ? "bg-emerald-500"
+                              : c.processing_status === "failed"
+                                ? "bg-red-400"
+                                : "bg-amber-400"
+                          }`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-gray-800 font-medium truncate">
+                            CV{" "}
+                            {c.processing_status === "done"
+                              ? "parsed"
+                              : "uploaded"}
+                            : {c.name || c.filename}
+                          </p>
+                          <p className="text-[10px] text-gray-400">
+                            {c.processing_status}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                )}
+                    ))}
               </div>
               <button className="mt-4 text-xs text-indigo-600 font-medium hover:underline">
                 Show More
@@ -466,21 +546,32 @@ export default function DashboardPage() {
                 { label: "Score", count: scored, unit: "files" },
                 { label: "Ready", count: ready, unit: "items", pending: true },
               ].map((step, i) => (
-                <div key={step.label} className="flex flex-col items-center z-10">
+                <div
+                  key={step.label}
+                  className="flex flex-col items-center z-10"
+                >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md ${
-                      step.pending
-                        ? "bg-gray-200"
-                        : "bg-indigo-600"
+                      step.pending ? "bg-gray-200" : "bg-indigo-600"
                     }`}
                   >
                     {!step.pending && (
                       <span className="material-symbols-outlined text-white text-sm">
-                        {["upload", "description", "analytics", "grade", "check"][i]}
+                        {
+                          [
+                            "upload",
+                            "description",
+                            "analytics",
+                            "grade",
+                            "check",
+                          ][i]
+                        }
                       </span>
                     )}
                   </div>
-                  <span className="mt-2 text-xs font-semibold text-gray-700">{step.label}</span>
+                  <span className="mt-2 text-xs font-semibold text-gray-700">
+                    {step.label}
+                  </span>
                   <span className="text-[10px] text-gray-400">
                     {step.count} {step.unit}
                   </span>
@@ -488,7 +579,6 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-
         </div>
       </main>
     </div>

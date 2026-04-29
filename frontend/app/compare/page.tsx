@@ -40,9 +40,9 @@ const R_MAX = 76;
 // 4 axes: Experience (top), Education (right), Research (bottom), Technical (left)
 const AXES_ANGLES = [
   -Math.PI / 2, // top
-  0,            // right
-  Math.PI / 2,  // bottom
-  Math.PI,      // left
+  0, // right
+  Math.PI / 2, // bottom
+  Math.PI, // left
 ];
 
 function radarPt(angle: number, pct: number): [number, number] {
@@ -75,7 +75,17 @@ function scoreTextClass(v: number | null | undefined): string {
 }
 
 function highestEdu(c: CandidateFull): string {
-  const ORDER = ["phd", "pg", "masters", "ms", "mphil", "ug", "bachelors", "bs", "be"];
+  const ORDER = [
+    "phd",
+    "pg",
+    "masters",
+    "ms",
+    "mphil",
+    "ug",
+    "bachelors",
+    "bs",
+    "be",
+  ];
   const sorted = [...c.education]
     .map((e) => e.level?.toLowerCase() ?? "")
     .sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
@@ -127,7 +137,9 @@ function CandidateSlot({
   if (loading) {
     return (
       <div className="bg-surface-container-lowest p-5 rounded-xl flex items-center justify-center min-h-[88px]">
-        <span className="text-sm text-on-surface-variant animate-pulse">Loading…</span>
+        <span className="text-sm text-on-surface-variant animate-pulse">
+          Loading…
+        </span>
       </div>
     );
   }
@@ -164,7 +176,9 @@ function CandidateSlot({
           {candidate.personal_info.present_employment || highestEdu(candidate)}
         </p>
       </div>
-      <div className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${color.scoreBg}`}>
+      <div
+        className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${color.scoreBg}`}
+      >
         {candidate.overall_score?.toFixed(1) ?? "—"}
       </div>
       <button
@@ -192,7 +206,9 @@ function CandidatePicker({
 }) {
   const [search, setSearch] = useState("");
   const filtered = candidates
-    .filter((c) => c.processing_status === "done" && !alreadySelected.includes(c.id))
+    .filter(
+      (c) => c.processing_status === "done" && !alreadySelected.includes(c.id),
+    )
     .filter((c) =>
       (c.name || c.filename).toLowerCase().includes(search.toLowerCase()),
     );
@@ -207,7 +223,9 @@ function CandidatePicker({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-on-surface">Select Candidate</h3>
+          <h3 className="text-lg font-bold text-on-surface">
+            Select Candidate
+          </h3>
           <button
             onClick={onClose}
             className="text-outline hover:text-on-surface transition-colors"
@@ -236,10 +254,16 @@ function CandidatePicker({
               className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-surface-container-low transition-colors text-left"
             >
               <div>
-                <p className="text-sm font-medium text-on-surface">{c.name || c.filename}</p>
-                <p className="text-xs text-on-surface-variant">{c.edu_level || "—"}</p>
+                <p className="text-sm font-medium text-on-surface">
+                  {c.name || c.filename}
+                </p>
+                <p className="text-xs text-on-surface-variant">
+                  {c.edu_level || "—"}
+                </p>
               </div>
-              <span className="text-sm font-bold text-primary">{c.overall_score ?? "—"}</span>
+              <span className="text-sm font-bold text-primary">
+                {c.overall_score ?? "—"}
+              </span>
             </button>
           ))}
         </div>
@@ -249,11 +273,7 @@ function CandidatePicker({
 }
 
 // ── Radar SVG ─────────────────────────────────────────────────────────────────
-function RadarChart({
-  slots,
-}: {
-  slots: (CandidateFull | null)[];
-}) {
+function RadarChart({ slots }: { slots: (CandidateFull | null)[] }) {
   const gridLevels = [25, 50, 75, 100];
   const filledSlots = slots
     .map((c, i) => (c ? { c, i } : null))
@@ -328,7 +348,11 @@ function RadarChart({
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function ComparePage() {
   const [candidateList, setCandidateList] = useState<CandidateListItem[]>([]);
-  const [slots, setSlots] = useState<(CandidateFull | null)[]>([null, null, null]);
+  const [slots, setSlots] = useState<(CandidateFull | null)[]>([
+    null,
+    null,
+    null,
+  ]);
   const [loadingSlot, setLoadingSlot] = useState<number | null>(null);
   const [pickerSlot, setPickerSlot] = useState<number | null>(null);
 
@@ -375,15 +399,23 @@ export default function ComparePage() {
 
   // Publication bar chart data
   const pubData = slots.map((c) => (c ? pubQualityCounts(c) : null));
-  const maxPub = Math.max(1, ...pubData.flatMap((d) => (d ? [d.q1, d.rest] : [0])));
+  const maxPub = Math.max(
+    1,
+    ...pubData.flatMap((d) => (d ? [d.q1, d.rest] : [0])),
+  );
 
   // Comparison table row definitions
-  const tableRows: { label: string; render: (c: CandidateFull) => React.ReactNode }[] = [
+  const tableRows: {
+    label: string;
+    render: (c: CandidateFull) => React.ReactNode;
+  }[] = [
     {
       label: "Overall Score",
       render: (c) =>
         c.overall_score != null ? (
-          <span className={`px-3 py-1 rounded-full text-xs font-bold ${scoreBadgeClass(c.overall_score)}`}>
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-bold ${scoreBadgeClass(c.overall_score)}`}
+          >
             {c.overall_score.toFixed(1)}
           </span>
         ) : (
@@ -393,7 +425,9 @@ export default function ComparePage() {
     {
       label: "Highest Degree",
       render: (c) => (
-        <span className="text-on-surface-variant font-medium">{highestEdu(c)}</span>
+        <span className="text-on-surface-variant font-medium">
+          {highestEdu(c)}
+        </span>
       ),
     },
     {
@@ -411,7 +445,9 @@ export default function ComparePage() {
       label: "Journal Papers",
       render: (c) => (
         <span className="text-on-surface-variant">
-          {c.research_profile?.journal_count ?? c.research_summary?.journal_count ?? "—"}
+          {c.research_profile?.journal_count ??
+            c.research_summary?.journal_count ??
+            "—"}
         </span>
       ),
     },
@@ -431,11 +467,19 @@ export default function ComparePage() {
       render: (c) => {
         const yrs = c.experience_analysis?.total_experience_years;
         return yrs != null ? (
-          <span className={yrs >= 8 ? "text-emerald-600 font-bold" : "text-on-surface-variant"}>
+          <span
+            className={
+              yrs >= 8
+                ? "text-emerald-600 font-bold"
+                : "text-on-surface-variant"
+            }
+          >
             {yrs.toFixed(1)}
           </span>
         ) : (
-          <span className="text-on-surface-variant">{c.experience.length} rec.</span>
+          <span className="text-on-surface-variant">
+            {c.experience.length} rec.
+          </span>
         );
       },
     },
@@ -460,7 +504,6 @@ export default function ComparePage() {
       <main className="ml-[220px] flex-1">
         <TopBar />
         <div className="pt-24 px-8 pb-12">
-
           {/* ── Header ── */}
           <div className="flex justify-between items-end mb-10">
             <div>
@@ -468,7 +511,8 @@ export default function ComparePage() {
                 Compare Candidates
               </h1>
               <p className="text-on-surface-variant text-sm">
-                Select up to three candidates to analyze performance metrics and publication quality side-by-side.
+                Select up to three candidates to analyze performance metrics and
+                publication quality side-by-side.
               </p>
             </div>
             {slots.some((s) => s === null) && (
@@ -476,7 +520,9 @@ export default function ComparePage() {
                 onClick={handleAddCandidateBtn}
                 className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-lg shadow-primary/20"
               >
-                <span className="material-symbols-outlined text-[20px]">person_add</span>
+                <span className="material-symbols-outlined text-[20px]">
+                  person_add
+                </span>
                 Add Candidate
               </button>
             )}
@@ -501,7 +547,6 @@ export default function ComparePage() {
             <>
               {/* Radar + Table row */}
               <div className="grid grid-cols-12 gap-8 mb-10">
-
                 {/* Radar Chart */}
                 <div className="col-span-12 lg:col-span-5 bg-white rounded-2xl p-8 flex flex-col items-center">
                   <div className="w-full flex justify-between items-start mb-8">
@@ -524,9 +569,14 @@ export default function ComparePage() {
                       (c, i) =>
                         c && (
                           <div key={c.id} className="flex items-center gap-2">
-                            <div className={`w-3 h-3 rounded-full ${COLORS[i].dotClass}`} />
+                            <div
+                              className={`w-3 h-3 rounded-full ${COLORS[i].dotClass}`}
+                            />
                             <span className="text-[10px] font-semibold text-on-surface">
-                              {c.personal_info.name?.split(" ").slice(0, 2).join(" ") || c.filename}
+                              {c.personal_info.name
+                                ?.split(" ")
+                                .slice(0, 2)
+                                .join(" ") || c.filename}
                             </span>
                           </div>
                         ),
@@ -589,11 +639,15 @@ export default function ComparePage() {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-primary-container" />
-                      <span className="text-xs font-semibold text-on-surface-variant">Q1 Tier</span>
+                      <span className="text-xs font-semibold text-on-surface-variant">
+                        Q1 Tier
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full bg-secondary-container" />
-                      <span className="text-xs font-semibold text-on-surface-variant">Q2-Q4 Tier</span>
+                      <span className="text-xs font-semibold text-on-surface-variant">
+                        Q2-Q4 Tier
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -603,7 +657,10 @@ export default function ComparePage() {
                   {slots.map((c, i) => {
                     const d = pubData[i];
                     return (
-                      <div key={i} className="flex-1 flex flex-col items-center">
+                      <div
+                        key={i}
+                        className="flex-1 flex flex-col items-center"
+                      >
                         {d ? (
                           <>
                             <div className="flex items-end gap-3 h-48">
@@ -632,9 +689,15 @@ export default function ComparePage() {
                             </div>
                             <span className="mt-4 text-[11px] font-bold uppercase tracking-wider text-on-surface">
                               {c!.personal_info.name
-                                ? c!.personal_info.name.split(" ")[0].toUpperCase() +
+                                ? c!.personal_info.name
+                                    .split(" ")[0]
+                                    .toUpperCase() +
                                   ". " +
-                                  (c!.personal_info.name.split(" ").slice(-1)[0] ?? "").toUpperCase()
+                                  (
+                                    c!.personal_info.name
+                                      .split(" ")
+                                      .slice(-1)[0] ?? ""
+                                  ).toUpperCase()
                                 : c!.filename.toUpperCase()}
                             </span>
                           </>
@@ -675,10 +738,15 @@ export default function ComparePage() {
           {/* ── Empty state ── */}
           {filledSlots.length === 0 && (
             <div className="text-center py-20 text-on-surface-variant">
-              <span className="material-symbols-outlined text-5xl mb-4 block">compare_arrows</span>
-              <p className="text-lg font-semibold">Select candidates to compare</p>
+              <span className="material-symbols-outlined text-5xl mb-4 block">
+                compare_arrows
+              </span>
+              <p className="text-lg font-semibold">
+                Select candidates to compare
+              </p>
               <p className="text-sm mt-1">
-                Click a slot above or the &ldquo;Add Candidate&rdquo; button to get started
+                Click a slot above or the &ldquo;Add Candidate&rdquo; button to
+                get started
               </p>
             </div>
           )}

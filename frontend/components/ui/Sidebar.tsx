@@ -30,7 +30,8 @@ export default function Sidebar() {
       <nav className="flex-1 space-y-1">
         {NAV.map(({ href, icon, label }) => {
           const active =
-            pathname === href || (href !== "/upload" && pathname.startsWith(href));
+            pathname === href ||
+            (href !== "/upload" && pathname.startsWith(href));
           return (
             <Link
               key={href}

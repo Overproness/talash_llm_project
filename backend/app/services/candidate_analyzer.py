@@ -304,8 +304,9 @@ async def run_full_analysis(doc: CandidateDocument) -> dict:
         "education_analysis": edu_analysis.model_dump(),
         "experience_analysis": exp_analysis.model_dump(),
         "research_summary": research_summary.model_dump(),
-        "research_profile": research_profile.model_dump(),
+        "research_profile": research_profile.model_dump(exclude={"enriched_publications"}),
         "missing_info_detailed": [m.model_dump() for m in missing_detailed],
         "summary": summary,
         "overall_score": overall_score,
+        **({"publications": research_profile.enriched_publications} if research_profile.enriched_publications else {}),
     }

@@ -230,6 +230,9 @@ class FullResearchProfile(BaseModel):
     # ── Score ─────────────────────────────────────────────────────────────────
     research_score: Optional[float] = None  # 0-100
 
+    # ── DOI-enriched publications (set during analysis, saved back to MongoDB) ─
+    enriched_publications: list[dict] = []
+
 
 class MissingInfoItem(BaseModel):
     field: str = ""

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV = [
-  { href: "/", icon: "upload", label: "Home" },
   { href: "/dashboard", icon: "dashboard", label: "Dashboard" },
+  { href: "/upload", icon: "upload", label: "Upload" },
   { href: "/candidates", icon: "group", label: "Candidates" },
   { href: "/ranking", icon: "leaderboard", label: "Ranking" },
   { href: "/compare", icon: "compare_arrows", label: "Compare" },
@@ -30,7 +30,7 @@ export default function Sidebar() {
       <nav className="flex-1 space-y-1">
         {NAV.map(({ href, icon, label }) => {
           const active =
-            pathname === href || (href !== "/" && pathname.startsWith(href));
+            pathname === href || (href !== "/upload" && pathname.startsWith(href));
           return (
             <Link
               key={href}

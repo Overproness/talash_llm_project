@@ -90,9 +90,11 @@ async def analyze_candidate(
 @router.post("/candidates/{candidate_id}/email-draft")
 async def generate_candidate_email(
     candidate_id: str,
+    force: bool = False,
     db: AsyncIOMotorDatabase = Depends(get_db),
 ):
-    """Generate a personalized email draft for a candidate with missing information."""
+    """Return the saved email draft for a candidate, or generate one if not yet cached.
+    Pass ?force=true to regenerate regardless of any cached draft."""
     try:
         oid = ObjectId(candidate_id)
     except InvalidId:
@@ -101,6 +103,16 @@ async def generate_candidate_email(
     doc = await db.candidates.find_one({"_id": oid})
     if not doc:
         raise HTTPException(status_code=404, detail="Candidate not found.")
+
+    # Return cached draft unless caller requests a forced regeneration
+    if not force and doc.get("email_draft"):
+        cached = doc["email_draft"]
+        return {
+            "candidate_id": candidate_id,
+            "has_missing_info": True,
+            "email_draft": cached,
+            "missing_count": len(cached.get("missing_items", [])),
+        }
 
     candidate = _doc_to_candidate(doc)
     missing = detect_missing_info_detailed(candidate)
@@ -114,6 +126,12 @@ async def generate_candidate_email(
         }
 
     email_draft = await generate_email_draft(candidate, missing)
+
+    # Persist the freshly generated draft so future calls are instant
+    await db.candidates.update_one(
+        {"_id": oid},
+        {"$set": {"email_draft": email_draft.model_dump()}},
+    )
 
     return {
         "candidate_id": candidate_id,

@@ -49,7 +49,7 @@ export default function EmailDraftsPage() {
   const handleRegenerate = async (id: string) => {
     setGenerating(id);
     try {
-      const response = await api.getEmailDraft(id);
+      const response = await api.regenerateEmailDraft(id);
       if (response.email_draft) {
         setDrafts((prev) => ({ ...prev, [id]: response.email_draft! }));
       }

@@ -4,139 +4,455 @@ import Sidebar from "@/components/ui/Sidebar";
 import TopBar from "@/components/ui/TopBar";
 import { api } from "@/lib/api";
 import { CandidateFull, CandidateListItem } from "@/lib/types";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
-// Colour palette for multi-candidate comparison (up to 3)
-const CANDIDATE_COLORS = [
-  { bar: "bg-primary", text: "text-primary", border: "border-primary" },
+// ── Colour palette for up to 3 candidate slots ──────────────────────────────
+const COLORS = [
   {
-    bar: "bg-emerald-500",
-    text: "text-emerald-600",
-    border: "border-emerald-500",
+    text: "text-primary",
+    scoreBg: "bg-primary/10 text-primary",
+    dotClass: "bg-primary",
+    polygon: "#4648d4",
+    fill: "rgba(70,72,212,0.15)",
   },
   {
-    bar: "bg-violet-500",
+    text: "text-teal-600",
+    scoreBg: "bg-teal-100 text-teal-700",
+    dotClass: "bg-teal-500",
+    polygon: "#14b8a6",
+    fill: "rgba(20,184,166,0.15)",
+  },
+  {
     text: "text-violet-600",
-    border: "border-violet-500",
+    scoreBg: "bg-violet-100 text-violet-700",
+    dotClass: "bg-violet-500",
+    polygon: "#8b5cf6",
+    fill: "rgba(139,92,246,0.15)",
   },
 ];
 
-function ScoreBar({
-  score,
-  colorClass,
+// ── Radar chart constants ─────────────────────────────────────────────────────
+// SVG viewBox "0 0 200 200", labels placed via absolute CSS
+const CX = 100;
+const CY = 100;
+const R_MAX = 76;
+
+// 4 axes: Experience (top), Education (right), Research (bottom), Technical (left)
+const AXES_ANGLES = [
+  -Math.PI / 2, // top
+  0,            // right
+  Math.PI / 2,  // bottom
+  Math.PI,      // left
+];
+
+function radarPt(angle: number, pct: number): [number, number] {
+  const v = Math.max(0, Math.min(100, pct)) / 100;
+  return [CX + R_MAX * v * Math.cos(angle), CY + R_MAX * v * Math.sin(angle)];
+}
+
+function getRadarScores(c: CandidateFull): number[] {
+  return [
+    c.experience_analysis?.experience_score ?? 0,
+    c.education_analysis?.education_score ?? 0,
+    c.research_profile?.research_score ?? 0,
+    Math.min(100, (c.skills.length / 15) * 100), // technical proxy
+  ];
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function scoreBadgeClass(v: number | null | undefined): string {
+  if (v == null) return "bg-surface-container text-outline";
+  if (v >= 80) return "bg-emerald-100 text-emerald-700";
+  if (v >= 60) return "bg-amber-100 text-amber-700";
+  return "bg-rose-100 text-rose-700";
+}
+
+function scoreTextClass(v: number | null | undefined): string {
+  if (v == null) return "text-outline-variant";
+  if (v >= 80) return "text-emerald-600 font-bold";
+  if (v >= 60) return "text-amber-600 font-bold";
+  return "text-rose-600 font-bold";
+}
+
+function highestEdu(c: CandidateFull): string {
+  const ORDER = ["phd", "pg", "masters", "ms", "mphil", "ug", "bachelors", "bs", "be"];
+  const sorted = [...c.education]
+    .map((e) => e.level?.toLowerCase() ?? "")
+    .sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b));
+  if (!sorted[0]) return "—";
+  const top = c.education.find((e) => e.level?.toLowerCase() === sorted[0]);
+  const inst = top?.institution?.split(" ").slice(0, 2).join(" ") ?? "";
+  return `${sorted[0].toUpperCase()}${inst ? ", " + inst : ""}`;
+}
+
+function bestCGPA(c: CandidateFull): string {
+  const scores = c.education
+    .map((e) => e.normalized_score)
+    .filter((s): s is number => s != null);
+  if (!scores.length) return "—";
+  return (Math.max(...scores) / 25).toFixed(2);
+}
+
+function pubQualityCounts(c: CandidateFull): { q1: number; rest: number } {
+  const quality = c.research_profile?.publication_quality ?? [];
+  const q1 = quality.filter((p) => p.journal_quality?.quartile === "Q1").length;
+  const rest = quality.filter(
+    (p) => p.journal_quality?.quartile && p.journal_quality.quartile !== "Q1",
+  ).length;
+  return { q1, rest };
+}
+
+function candidateInitial(c: CandidateFull): string {
+  return (c.personal_info.name || c.filename || "?").charAt(0).toUpperCase();
+}
+
+function candidateFirstName(c: CandidateFull): string {
+  return c.personal_info.name?.split(" ")[0] || c.filename || "Candidate";
+}
+
+// ── Candidate slot card ───────────────────────────────────────────────────────
+function CandidateSlot({
+  candidate,
+  colorIdx,
+  loading,
+  onAdd,
+  onRemove,
 }: {
-  score: number | null | undefined;
-  colorClass: string;
+  candidate: CandidateFull | null;
+  colorIdx: number;
+  loading: boolean;
+  onAdd: () => void;
+  onRemove: () => void;
 }) {
-  const pct = score ?? 0;
-  return (
-    <div className="flex items-center gap-3">
-      <div className="flex-1 h-2 rounded-full bg-surface-container overflow-hidden">
-        <div
-          className={`h-full rounded-full ${colorClass}`}
-          style={{ width: `${pct}%` }}
-        />
+  if (loading) {
+    return (
+      <div className="bg-surface-container-lowest p-5 rounded-xl flex items-center justify-center min-h-[88px]">
+        <span className="text-sm text-on-surface-variant animate-pulse">Loading…</span>
       </div>
-      <span className="text-sm font-bold w-8 text-right">{score ?? "—"}</span>
+    );
+  }
+
+  if (!candidate) {
+    return (
+      <button
+        onClick={onAdd}
+        className="bg-surface-container-low border-2 border-dashed border-outline-variant/30 p-5 rounded-xl flex items-center justify-center gap-3 group hover:bg-surface-container-high hover:border-primary/50 transition-all min-h-[88px]"
+      >
+        <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-outline group-hover:bg-primary group-hover:text-white transition-all">
+          <span className="material-symbols-outlined">add</span>
+        </div>
+        <span className="text-sm font-semibold text-on-surface-variant group-hover:text-primary transition-all">
+          Add Candidate
+        </span>
+      </button>
+    );
+  }
+
+  const color = COLORS[colorIdx];
+  return (
+    <div className="bg-surface-container-lowest p-5 rounded-xl flex items-center gap-4 group relative">
+      <div
+        className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-xl text-white flex-shrink-0 ${color.dotClass}`}
+      >
+        {candidateInitial(candidate)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-bold text-on-surface leading-tight truncate">
+          {candidate.personal_info.name || candidate.filename}
+        </h3>
+        <p className="text-xs text-on-surface-variant truncate">
+          {candidate.personal_info.present_employment || highestEdu(candidate)}
+        </p>
+      </div>
+      <div className={`px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${color.scoreBg}`}>
+        {candidate.overall_score?.toFixed(1) ?? "—"}
+      </div>
+      <button
+        onClick={onRemove}
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-outline hover:text-error"
+        aria-label="Remove candidate"
+      >
+        <span className="material-symbols-outlined text-sm">close</span>
+      </button>
     </div>
   );
 }
 
-function SkillBadge({
-  skill,
-  highlight,
+// ── Candidate picker modal ────────────────────────────────────────────────────
+function CandidatePicker({
+  candidates,
+  alreadySelected,
+  onSelect,
+  onClose,
 }: {
-  skill: string;
-  highlight?: boolean;
+  candidates: CandidateListItem[];
+  alreadySelected: string[];
+  onSelect: (id: string) => void;
+  onClose: () => void;
 }) {
+  const [search, setSearch] = useState("");
+  const filtered = candidates
+    .filter((c) => c.processing_status === "done" && !alreadySelected.includes(c.id))
+    .filter((c) =>
+      (c.name || c.filename).toLowerCase().includes(search.toLowerCase()),
+    );
+
   return (
-    <span
-      className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-        highlight
-          ? "bg-primary-fixed text-on-primary-fixed"
-          : "bg-surface-container text-on-surface-variant"
-      }`}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
     >
-      {skill}
-    </span>
+      <div
+        className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold text-on-surface">Select Candidate</h3>
+          <button
+            onClick={onClose}
+            className="text-outline hover:text-on-surface transition-colors"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <input
+          type="text"
+          placeholder="Search by name…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full border border-outline-variant rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary/20"
+          autoFocus
+        />
+        <div className="space-y-1 max-h-72 overflow-y-auto">
+          {filtered.length === 0 && (
+            <p className="text-sm text-on-surface-variant text-center py-6">
+              No candidates available
+            </p>
+          )}
+          {filtered.map((c) => (
+            <button
+              key={c.id}
+              onClick={() => onSelect(c.id)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-surface-container-low transition-colors text-left"
+            >
+              <div>
+                <p className="text-sm font-medium text-on-surface">{c.name || c.filename}</p>
+                <p className="text-xs text-on-surface-variant">{c.edu_level || "—"}</p>
+              </div>
+              <span className="text-sm font-bold text-primary">{c.overall_score ?? "—"}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
+// ── Radar SVG ─────────────────────────────────────────────────────────────────
+function RadarChart({
+  slots,
+}: {
+  slots: (CandidateFull | null)[];
+}) {
+  const gridLevels = [25, 50, 75, 100];
+  const filledSlots = slots
+    .map((c, i) => (c ? { c, i } : null))
+    .filter((x): x is { c: CandidateFull; i: number } => x !== null);
+
+  return (
+    <div className="relative w-full max-w-[260px] mx-auto">
+      {/* Axis labels — absolutely placed outside SVG */}
+      <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-wider text-on-surface-variant whitespace-nowrap">
+        EXPERIENCE
+      </span>
+      <span className="absolute right-[-52px] top-1/2 -translate-y-1/2 text-[9px] font-bold uppercase tracking-wider text-on-surface-variant whitespace-nowrap">
+        EDUCATION
+      </span>
+      <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-wider text-on-surface-variant whitespace-nowrap">
+        RESEARCH
+      </span>
+      <span className="absolute left-[-52px] top-1/2 -translate-y-1/2 text-[9px] font-bold uppercase tracking-wider text-on-surface-variant whitespace-nowrap">
+        TECHNICAL
+      </span>
+
+      <svg viewBox="0 0 200 200" className="w-full h-full">
+        {/* Grid circles */}
+        {gridLevels.map((lvl) => (
+          <circle
+            key={lvl}
+            cx={CX}
+            cy={CY}
+            r={(R_MAX * lvl) / 100}
+            fill="none"
+            stroke="#c7c4d7"
+            strokeWidth="0.5"
+            opacity="0.7"
+          />
+        ))}
+        {/* Axis lines */}
+        {AXES_ANGLES.map((angle, j) => {
+          const [x, y] = radarPt(angle, 100);
+          return (
+            <line
+              key={j}
+              x1={CX}
+              y1={CY}
+              x2={x}
+              y2={y}
+              stroke="#c7c4d7"
+              strokeWidth="0.5"
+              opacity="0.7"
+            />
+          );
+        })}
+        {/* Candidate polygons */}
+        {filledSlots.map(({ c, i }) => {
+          const color = COLORS[i];
+          const scores = getRadarScores(c);
+          const pts = AXES_ANGLES.map((angle, j) => radarPt(angle, scores[j]));
+          return (
+            <polygon
+              key={c.id}
+              points={pts.map(([x, y]) => `${x},${y}`).join(" ")}
+              fill={color.fill}
+              stroke={color.polygon}
+              strokeWidth="2"
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function ComparePage() {
-  const [candidates, setCandidates] = useState<CandidateListItem[]>([]);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [details, setDetails] = useState<CandidateFull[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [candidateList, setCandidateList] = useState<CandidateListItem[]>([]);
+  const [slots, setSlots] = useState<(CandidateFull | null)[]>([null, null, null]);
+  const [loadingSlot, setLoadingSlot] = useState<number | null>(null);
+  const [pickerSlot, setPickerSlot] = useState<number | null>(null);
 
   useEffect(() => {
-    api.getCandidates(0, 100).then(setCandidates).catch(console.error);
+    api.getCandidates(0, 200).then(setCandidateList).catch(console.error);
   }, []);
 
-  const toggleSelect = (id: string) => {
-    setSelected((prev) =>
-      prev.includes(id)
-        ? prev.filter((x) => x !== id)
-        : prev.length < 3
-          ? [...prev, id]
-          : prev,
-    );
+  const filledSlots = slots.filter(Boolean) as CandidateFull[];
+  const alreadySelected = filledSlots.map((c) => c.id);
+
+  const openPicker = (idx: number) => setPickerSlot(idx);
+
+  const handleAddCandidateBtn = () => {
+    const firstEmpty = slots.findIndex((s) => s === null);
+    if (firstEmpty >= 0) openPicker(firstEmpty);
   };
 
-  const compare = async () => {
-    setLoading(true);
+  const handleSelect = async (candidateId: string) => {
+    if (pickerSlot === null) return;
+    const slotIdx = pickerSlot;
+    setPickerSlot(null);
+    setLoadingSlot(slotIdx);
     try {
-      const results = await Promise.all(
-        selected.map((id) => api.getCandidate(id)),
-      );
-      setDetails(results);
+      const data = await api.getCandidate(candidateId);
+      setSlots((prev) => {
+        const next = [...prev];
+        next[slotIdx] = data;
+        return next;
+      });
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      setLoadingSlot(null);
     }
   };
 
-  // Derive the union of all skills across compared candidates
-  const allSkills =
-    details.length > 0
-      ? Array.from(new Set(details.flatMap((c) => c.skills)))
-      : [];
-
-  // Shared skills = appear in every candidate
-  const sharedSkills = allSkills.filter((s) =>
-    details.every((c) => c.skills.includes(s)),
-  );
-
-  // Get highest education level label from a candidate
-  const highestEdu = (c: CandidateFull) => {
-    const order = [
-      "phd",
-      "pg",
-      "masters",
-      "ms",
-      "mphil",
-      "ug",
-      "bachelors",
-      "bs",
-      "be",
-      "hssc",
-      "sse",
-      "intermediate",
-      "matric",
-    ];
-    const lv = c.education
-      .map((e) => e.level?.toLowerCase() ?? "")
-      .sort((a, b) => order.indexOf(a) - order.indexOf(b))[0];
-    return lv ? lv.toUpperCase() : "—";
+  const removeSlot = (idx: number) => {
+    setSlots((prev) => {
+      const next = [...prev];
+      next[idx] = null;
+      return next;
+    });
   };
 
-  const totalExpYears = (c: CandidateFull) => {
-    const yrs = c.experience_analysis?.total_experience_years;
-    return yrs != null
-      ? `${yrs.toFixed(1)} yrs`
-      : `${c.experience.length} records`;
-  };
+  // Publication bar chart data
+  const pubData = slots.map((c) => (c ? pubQualityCounts(c) : null));
+  const maxPub = Math.max(1, ...pubData.flatMap((d) => (d ? [d.q1, d.rest] : [0])));
+
+  // Comparison table row definitions
+  const tableRows: { label: string; render: (c: CandidateFull) => React.ReactNode }[] = [
+    {
+      label: "Overall Score",
+      render: (c) =>
+        c.overall_score != null ? (
+          <span className={`px-3 py-1 rounded-full text-xs font-bold ${scoreBadgeClass(c.overall_score)}`}>
+            {c.overall_score.toFixed(1)}
+          </span>
+        ) : (
+          <span className="text-outline-variant">N/A</span>
+        ),
+    },
+    {
+      label: "Highest Degree",
+      render: (c) => (
+        <span className="text-on-surface-variant font-medium">{highestEdu(c)}</span>
+      ),
+    },
+    {
+      label: "CGPA (Scaled)",
+      render: (c) => {
+        const v = bestCGPA(c);
+        return v !== "—" ? (
+          <span className={scoreTextClass(parseFloat(v) * 25)}>{v}</span>
+        ) : (
+          <span className="text-outline-variant">—</span>
+        );
+      },
+    },
+    {
+      label: "Journal Papers",
+      render: (c) => (
+        <span className="text-on-surface-variant">
+          {c.research_profile?.journal_count ?? c.research_summary?.journal_count ?? "—"}
+        </span>
+      ),
+    },
+    {
+      label: "Q1 Papers",
+      render: (c) => {
+        const q1 = pubQualityCounts(c).q1;
+        return q1 > 0 ? (
+          <span className="text-emerald-600 font-bold">{q1}</span>
+        ) : (
+          <span className="text-on-surface-variant">{q1}</span>
+        );
+      },
+    },
+    {
+      label: "Experience Years",
+      render: (c) => {
+        const yrs = c.experience_analysis?.total_experience_years;
+        return yrs != null ? (
+          <span className={yrs >= 8 ? "text-emerald-600 font-bold" : "text-on-surface-variant"}>
+            {yrs.toFixed(1)}
+          </span>
+        ) : (
+          <span className="text-on-surface-variant">{c.experience.length} rec.</span>
+        );
+      },
+    },
+    {
+      label: "Research Index",
+      render: (c) =>
+        c.research_profile?.research_score != null ? (
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-bold ${scoreBadgeClass(c.research_profile.research_score)}`}
+          >
+            {c.research_profile.research_score}
+          </span>
+        ) : (
+          <span className="text-outline-variant">N/A</span>
+        ),
+    },
+  ];
 
   return (
     <div className="flex min-h-screen bg-surface">
@@ -144,380 +460,247 @@ export default function ComparePage() {
       <main className="ml-[220px] flex-1">
         <TopBar />
         <div className="pt-24 px-8 pb-12">
-          <div className="mb-8">
-            <h1 className="text-3xl font-extrabold tracking-tight text-on-surface">
-              Compare Candidates
-            </h1>
-            <p className="text-on-surface-variant mt-1 text-sm">
-              Select up to 3 candidates for side-by-side comparison
-            </p>
+
+          {/* ── Header ── */}
+          <div className="flex justify-between items-end mb-10">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-on-surface mb-1 uppercase">
+                Compare Candidates
+              </h1>
+              <p className="text-on-surface-variant text-sm">
+                Select up to three candidates to analyze performance metrics and publication quality side-by-side.
+              </p>
+            </div>
+            {slots.some((s) => s === null) && (
+              <button
+                onClick={handleAddCandidateBtn}
+                className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-lg shadow-primary/20"
+              >
+                <span className="material-symbols-outlined text-[20px]">person_add</span>
+                Add Candidate
+              </button>
+            )}
           </div>
 
-          {details.length === 0 ? (
+          {/* ── Candidate Slots ── */}
+          <div className="grid grid-cols-3 gap-6 mb-10">
+            {slots.map((slot, i) => (
+              <CandidateSlot
+                key={i}
+                candidate={slot}
+                colorIdx={i}
+                loading={loadingSlot === i}
+                onAdd={() => openPicker(i)}
+                onRemove={() => removeSlot(i)}
+              />
+            ))}
+          </div>
+
+          {/* ── Insights (shown as soon as ≥1 candidate loaded) ── */}
+          {filledSlots.length >= 1 && (
             <>
-              <div className="bg-surface-container-lowest rounded-2xl shadow-sm overflow-hidden mb-6">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-surface-container">
-                      <th className="px-4 py-3 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-widest w-10"></th>
-                      <th className="px-4 py-3 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                        Candidate
-                      </th>
-                      <th className="px-4 py-3 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                        Edu Level
-                      </th>
-                      <th className="px-4 py-3 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                        Skills
-                      </th>
-                      <th className="px-4 py-3 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                        Publications
-                      </th>
-                      <th className="px-4 py-3 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                        Missing
-                      </th>
-                      <th className="px-4 py-3 text-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
-                        Score
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {candidates
-                      .filter((c) => c.processing_status === "done")
-                      .map((c) => (
+              {/* Radar + Table row */}
+              <div className="grid grid-cols-12 gap-8 mb-10">
+
+                {/* Radar Chart */}
+                <div className="col-span-12 lg:col-span-5 bg-white rounded-2xl p-8 flex flex-col items-center">
+                  <div className="w-full flex justify-between items-start mb-8">
+                    <h4 className="text-[11px] font-bold uppercase tracking-widest text-on-surface-variant">
+                      Metric Overlay Analysis
+                    </h4>
+                    <span className="text-[10px] bg-surface-container-high px-2 py-1 rounded text-primary font-bold">
+                      RADAR-INSIGHT
+                    </span>
+                  </div>
+
+                  {/* SVG Radar with absolute labels */}
+                  <div className="px-16 py-6 w-full">
+                    <RadarChart slots={slots} />
+                  </div>
+
+                  {/* Legend */}
+                  <div className="mt-6 flex flex-wrap gap-4 justify-center">
+                    {slots.map(
+                      (c, i) =>
+                        c && (
+                          <div key={c.id} className="flex items-center gap-2">
+                            <div className={`w-3 h-3 rounded-full ${COLORS[i].dotClass}`} />
+                            <span className="text-[10px] font-semibold text-on-surface">
+                              {c.personal_info.name?.split(" ").slice(0, 2).join(" ") || c.filename}
+                            </span>
+                          </div>
+                        ),
+                    )}
+                  </div>
+                </div>
+
+                {/* Comparison Table */}
+                <div className="col-span-12 lg:col-span-7 bg-surface-container-lowest rounded-2xl p-4 overflow-hidden">
+                  <table className="w-full text-left border-separate border-spacing-y-2">
+                    <thead>
+                      <tr>
+                        <th className="p-4 text-[10px] font-bold text-outline uppercase tracking-widest">
+                          Metric
+                        </th>
+                        {slots.map((c, i) => (
+                          <th
+                            key={i}
+                            className={`p-4 text-center text-xs font-bold ${c ? COLORS[i].text : "text-outline-variant"}`}
+                          >
+                            {c ? candidateFirstName(c) : "—"}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm">
+                      {tableRows.map((row) => (
                         <tr
-                          key={c.id}
-                          className={`hover:bg-surface-container-low transition-colors border-b border-outline-variant/10 ${selected.includes(c.id) ? "bg-primary-fixed/10" : ""}`}
+                          key={row.label}
+                          className="group hover:bg-surface-container-low transition-colors"
                         >
-                          <td className="px-4 py-3">
-                            <input
-                              type="checkbox"
-                              checked={selected.includes(c.id)}
-                              onChange={() => toggleSelect(c.id)}
-                              className="accent-primary w-4 h-4"
-                            />
+                          <td className="p-4 rounded-l-xl font-medium text-on-surface">
+                            {row.label}
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-on-surface">
-                            {c.name || c.filename}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className="text-[10px] bg-surface-container px-2 py-0.5 rounded-full text-on-surface-variant font-medium">
-                              {c.edu_level || "—"}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm">
-                            {c.skills_count}
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm">
-                            {c.publications_count}
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm">
-                            <span
-                              className={
-                                c.missing_fields_count > 0
-                                  ? "text-error font-semibold"
-                                  : "text-emerald-600 font-semibold"
-                              }
+                          {slots.map((c, i) => (
+                            <td
+                              key={i}
+                              className={`p-4 text-center ${i === slots.length - 1 ? "rounded-r-xl" : ""}`}
                             >
-                              {c.missing_fields_count}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-center text-sm text-primary font-bold">
-                            {c.overall_score ?? "—"}
-                          </td>
+                              {c ? (
+                                row.render(c)
+                              ) : (
+                                <span className="text-outline-variant">—</span>
+                              )}
+                            </td>
+                          ))}
                         </tr>
                       ))}
-                  </tbody>
-                </table>
-              </div>
-              {selected.length > 0 && (
-                <p className="text-xs text-on-surface-variant mb-3">
-                  {selected.length} candidate{selected.length > 1 ? "s" : ""}{" "}
-                  selected
-                  {selected.length < 2 ? " — select at least 2 to compare" : ""}
-                </p>
-              )}
-              <button
-                onClick={compare}
-                disabled={selected.length < 2 || loading}
-                className="primary-gradient text-white px-6 py-2.5 rounded-xl font-semibold text-sm shadow-lg disabled:opacity-50"
-              >
-                {loading ? "Loading…" : `Compare ${selected.length} Candidates`}
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => {
-                  setDetails([]);
-                  setSelected([]);
-                }}
-                className="text-sm text-on-surface-variant hover:text-primary mb-6 flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-sm">
-                  arrow_back
-                </span>{" "}
-                Back to selection
-              </button>
-
-              {/* ── Score comparison section ─────────────────────────────── */}
-              <section className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mb-6">
-                <h2 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-5">
-                  Score Comparison
-                </h2>
-                <div className="space-y-5">
-                  {(
-                    [
-                      "Overall Score",
-                      "Education Score",
-                      "Experience Score",
-                      "Research Score",
-                    ] as const
-                  ).map((label) => (
-                    <div key={label}>
-                      <p className="text-xs text-on-surface-variant mb-2 font-semibold">
-                        {label}
-                      </p>
-                      <div className="space-y-2">
-                        {details.map((c, i) => {
-                          const scoreMap = {
-                            "Overall Score": c.overall_score,
-                            "Education Score":
-                              c.education_analysis?.education_score,
-                            "Experience Score":
-                              c.experience_analysis?.experience_score,
-                            "Research Score":
-                              c.research_profile?.research_score,
-                          };
-                          return (
-                            <div key={c.id} className="flex items-center gap-3">
-                              <span
-                                className={`text-[10px] font-bold w-28 truncate ${CANDIDATE_COLORS[i].text}`}
-                              >
-                                {c.personal_info.name || c.filename}
-                              </span>
-                              <ScoreBar
-                                score={scoreMap[label]}
-                                colorClass={CANDIDATE_COLORS[i].bar}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
+                    </tbody>
+                  </table>
                 </div>
-              </section>
-
-              {/* ── Side-by-side cards ───────────────────────────────────── */}
-              <div
-                className="grid gap-6"
-                style={{
-                  gridTemplateColumns: `repeat(${details.length}, 1fr)`,
-                }}
-              >
-                {details.map((c, i) => (
-                  <div
-                    key={c.id}
-                    className={`bg-surface-container-lowest rounded-2xl p-6 shadow-sm space-y-5 border-t-4 ${CANDIDATE_COLORS[i].border}`}
-                  >
-                    {/* Header */}
-                    <div className="text-center">
-                      <div
-                        className={`w-16 h-16 rounded-full flex items-center justify-center font-bold text-xl mx-auto mb-3 bg-primary-fixed text-on-primary-fixed`}
-                      >
-                        {(c.personal_info.name || "U").charAt(0).toUpperCase()}
-                      </div>
-                      <h3 className="font-bold text-on-surface text-base">
-                        {c.personal_info.name || c.filename}
-                      </h3>
-                      <p className="text-xs text-on-surface-variant">
-                        {c.personal_info.email || "—"}
-                      </p>
-                    </div>
-
-                    {/* Quick stats */}
-                    <div className="space-y-2 text-sm divide-y divide-outline-variant/20">
-                      {[
-                        { label: "Highest Degree", value: highestEdu(c) },
-                        { label: "Experience", value: totalExpYears(c) },
-                        { label: "Publications", value: c.publications.length },
-                        { label: "Skills", value: c.skills.length },
-                        {
-                          label: "Career Trajectory",
-                          value:
-                            c.experience_analysis?.career_trajectory ?? "—",
-                        },
-                      ].map(({ label, value }) => (
-                        <div
-                          key={label}
-                          className="flex justify-between py-1.5 first:pt-0"
-                        >
-                          <span className="text-on-surface-variant">
-                            {label}
-                          </span>
-                          <span className="font-semibold text-on-surface capitalize">
-                            {value}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between py-1.5">
-                        <span className="text-on-surface-variant">
-                          Missing Fields
-                        </span>
-                        <span
-                          className={
-                            c.missing_fields.length > 0
-                              ? "font-semibold text-error"
-                              : "font-semibold text-emerald-600"
-                          }
-                        >
-                          {c.missing_fields.length === 0
-                            ? "✓ Complete"
-                            : `${c.missing_fields.length} missing`}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Education records */}
-                    {c.education.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">
-                          Education
-                        </p>
-                        <ul className="space-y-1.5">
-                          {c.education.slice(0, 3).map((e, idx) => (
-                            <li key={idx} className="text-xs text-on-surface">
-                              <span className="font-semibold">
-                                {e.level?.toUpperCase() ?? "—"}
-                              </span>
-                              {e.specialization ? ` · ${e.specialization}` : ""}
-                              <span className="text-on-surface-variant block truncate">
-                                {e.institution}
-                              </span>
-                            </li>
-                          ))}
-                          {c.education.length > 3 && (
-                            <li className="text-xs text-on-surface-variant">
-                              +{c.education.length - 3} more
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Education analysis gaps */}
-                    {(c.education_analysis?.education_gaps ?? []).length >
-                      0 && (
-                      <div>
-                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">
-                          Education Gaps
-                        </p>
-                        <ul className="space-y-1">
-                          {c
-                            .education_analysis!.education_gaps.slice(0, 2)
-                            .map((g, idx) => (
-                              <li
-                                key={idx}
-                                className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1"
-                              >
-                                {g.justification
-                                  ? `${g.gap_years ?? "?"} yr gap — ${g.justification}`
-                                  : `${g.gap_years ?? "?"} yr gap between ${g.from_level} → ${g.to_level}`}
-                              </li>
-                            ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Missing fields */}
-                    {c.missing_fields.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-bold text-error uppercase tracking-widest mb-1">
-                          Missing Info
-                        </p>
-                        <ul className="flex flex-wrap gap-1">
-                          {c.missing_fields.slice(0, 5).map((f) => (
-                            <li
-                              key={f}
-                              className="text-[10px] bg-error/10 text-error px-2 py-0.5 rounded-full"
-                            >
-                              {f}
-                            </li>
-                          ))}
-                          {c.missing_fields.length > 5 && (
-                            <li className="text-[10px] text-on-surface-variant">
-                              +{c.missing_fields.length - 5}
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* AI summary excerpt */}
-                    {c.summary && (
-                      <div>
-                        <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">
-                          Summary
-                        </p>
-                        <p className="text-xs text-on-surface leading-relaxed line-clamp-4">
-                          {c.summary}
-                        </p>
-                      </div>
-                    )}
-
-                    <Link
-                      href={`/candidates/${c.id}`}
-                      className="block text-center text-xs text-primary font-semibold hover:underline"
-                    >
-                      View Full Profile →
-                    </Link>
-                  </div>
-                ))}
               </div>
 
-              {/* ── Skills comparison ────────────────────────────────────── */}
-              {allSkills.length > 0 && (
-                <section className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm mt-6">
-                  <h2 className="text-xs font-bold text-on-surface-variant uppercase tracking-widest mb-1">
-                    Skills Comparison
-                  </h2>
-                  <p className="text-xs text-on-surface-variant mb-4">
-                    Highlighted skills are shared by all candidates
-                  </p>
-                  <div
-                    className="grid gap-4"
-                    style={{
-                      gridTemplateColumns: `repeat(${details.length}, 1fr)`,
-                    }}
-                  >
-                    {details.map((c) => (
-                      <div key={c.id}>
-                        <p className="text-xs font-semibold text-on-surface mb-2 truncate">
-                          {c.personal_info.name || c.filename}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {c.skills.slice(0, 20).map((s) => (
-                            <SkillBadge
-                              key={s}
-                              skill={s}
-                              highlight={sharedSkills.includes(s)}
-                            />
-                          ))}
-                          {c.skills.length > 20 && (
-                            <span className="text-[10px] text-on-surface-variant">
-                              +{c.skills.length - 20} more
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+              {/* ── Publication Quality Distribution ── */}
+              <div className="bg-surface-container-lowest rounded-2xl p-8">
+                <div className="flex justify-between items-center mb-10">
+                  <h4 className="text-lg font-bold text-on-surface">
+                    Publication Quality Distribution
+                  </h4>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-primary-container" />
+                      <span className="text-xs font-semibold text-on-surface-variant">Q1 Tier</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-secondary-container" />
+                      <span className="text-xs font-semibold text-on-surface-variant">Q2-Q4 Tier</span>
+                    </div>
                   </div>
-                </section>
-              )}
+                </div>
+
+                {/* Grouped bar chart */}
+                <div className="flex items-end gap-12 h-48 border-b border-outline-variant/30 pb-2 px-8">
+                  {slots.map((c, i) => {
+                    const d = pubData[i];
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center">
+                        {d ? (
+                          <>
+                            <div className="flex items-end gap-3 h-48">
+                              {/* Q1 bar */}
+                              <div
+                                className="w-10 rounded-t-md bg-primary-container relative group/bar"
+                                style={{
+                                  height: `${Math.max(4, (d.q1 / maxPub) * 100)}%`,
+                                }}
+                              >
+                                <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-opacity bg-on-surface text-white text-[10px] px-2 py-0.5 rounded whitespace-nowrap z-10">
+                                  {d.q1} Q1 Paper{d.q1 !== 1 ? "s" : ""}
+                                </div>
+                              </div>
+                              {/* Q2-Q4 bar */}
+                              <div
+                                className="w-10 rounded-t-md bg-secondary-container relative group/bar"
+                                style={{
+                                  height: `${Math.max(4, (d.rest / maxPub) * 100)}%`,
+                                }}
+                              >
+                                <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover/bar:opacity-100 transition-opacity bg-on-surface text-white text-[10px] px-2 py-0.5 rounded whitespace-nowrap z-10">
+                                  {d.rest} Other Paper{d.rest !== 1 ? "s" : ""}
+                                </div>
+                              </div>
+                            </div>
+                            <span className="mt-4 text-[11px] font-bold uppercase tracking-wider text-on-surface">
+                              {c!.personal_info.name
+                                ? c!.personal_info.name.split(" ")[0].toUpperCase() +
+                                  ". " +
+                                  (c!.personal_info.name.split(" ").slice(-1)[0] ?? "").toUpperCase()
+                                : c!.filename.toUpperCase()}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="flex items-end gap-3 h-48">
+                              <div className="w-24 h-full border-2 border-dashed border-outline-variant/20 rounded-t-md flex items-center justify-center text-outline-variant">
+                                <span className="text-[10px]">NO DATA</span>
+                              </div>
+                            </div>
+                            <span className="mt-4 text-[11px] font-bold uppercase tracking-wider text-outline-variant">
+                              Empty Slot
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 flex justify-between text-[10px] text-on-surface-variant font-medium px-4">
+                  <span>
+                    {filledSlots.length > 0
+                      ? `Research Quality: ${filledSlots
+                          .map((c) => {
+                            const { q1 } = pubQualityCounts(c);
+                            return `${candidateFirstName(c)} (${q1 >= 5 ? "High" : q1 >= 2 ? "Moderate" : "Low"})`;
+                          })
+                          .join(", ")}`
+                      : "Select candidates to compare"}
+                  </span>
+                  <span>Data updated live</span>
+                </div>
+              </div>
             </>
+          )}
+
+          {/* ── Empty state ── */}
+          {filledSlots.length === 0 && (
+            <div className="text-center py-20 text-on-surface-variant">
+              <span className="material-symbols-outlined text-5xl mb-4 block">compare_arrows</span>
+              <p className="text-lg font-semibold">Select candidates to compare</p>
+              <p className="text-sm mt-1">
+                Click a slot above or the &ldquo;Add Candidate&rdquo; button to get started
+              </p>
+            </div>
           )}
         </div>
       </main>
+
+      {/* ── Candidate picker modal ── */}
+      {pickerSlot !== null && (
+        <CandidatePicker
+          candidates={candidateList}
+          alreadySelected={alreadySelected}
+          onSelect={handleSelect}
+          onClose={() => setPickerSlot(null)}
+        />
+      )}
+
+      {/* ── Share FAB ── */}
+      {filledSlots.length >= 2 && (
+        <button className="fixed bottom-8 right-8 w-14 h-14 bg-indigo-900 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-50">
+          <span className="material-symbols-outlined">ios_share</span>
+        </button>
+      )}
     </div>
   );
 }

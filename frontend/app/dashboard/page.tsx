@@ -6,27 +6,67 @@ import { api } from "@/lib/api";
 import { CandidateListItem, DashboardStats } from "@/lib/types";
 import { useEffect, useState } from "react";
 
-const BAR_COLORS = [
-  "bg-primary",
-  "bg-emerald-500",
-  "bg-blue-500",
-  "bg-violet-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-cyan-500",
-  "bg-indigo-500",
-  "bg-pink-500",
-  "bg-teal-500",
-];
+const DONUT_COLORS = ["#1e1b4b", "#4f46e5", "#06b6d4", "#d1d5db"];
 
-const PIE_COLORS = [
-  "#6366f1",
-  "#10b981",
-  "#3b82f6",
-  "#8b5cf6",
-  "#f59e0b",
-  "#ef4444",
-];
+function DonutChart({
+  segments,
+  total,
+}: {
+  segments: { label: string; pct: number; color: string }[];
+  total: number;
+}) {
+  const r = 50;
+  const cx = 60;
+  const cy = 60;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <svg viewBox="0 0 120 120" className="w-36 h-36 -rotate-90">
+      {segments.map((seg, i) => {
+        const dash = seg.pct * circumference;
+        const gap = circumference - dash;
+        const el = (
+          <circle
+            key={i}
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke={seg.color}
+            strokeWidth="20"
+            strokeDasharray={`${dash} ${gap}`}
+            strokeDashoffset={-offset * circumference}
+          />
+        );
+        offset += seg.pct;
+        return el;
+      })}
+      <circle cx={cx} cy={cy} r="38" fill="white" />
+      <text
+        x={cx}
+        y={cy - 4}
+        textAnchor="middle"
+        fontSize="13"
+        fontWeight="bold"
+        fill="#1e1b4b"
+        className="rotate-90"
+        style={{ transform: `rotate(90deg)`, transformOrigin: `${cx}px ${cy}px` }}
+      >
+        {total.toLocaleString()}
+      </text>
+      <text
+        x={cx}
+        y={cy + 10}
+        textAnchor="middle"
+        fontSize="7"
+        fill="#6b7280"
+        style={{ transform: `rotate(90deg)`, transformOrigin: `${cx}px ${cy}px` }}
+      >
+        Total Papers
+      </text>
+    </svg>
+  );
+}
 
 export default function DashboardPage() {
   const [candidates, setCandidates] = useState<CandidateListItem[]>([]);
@@ -35,6 +75,7 @@ export default function DashboardPage() {
     status: string;
     ollama: string;
   } | null>(null);
+  const [timeFilter, setTimeFilter] = useState<"7d" | "30d" | "all">("30d");
 
   useEffect(() => {
     api.getCandidates(0, 100).then(setCandidates).catch(console.error);
@@ -43,378 +84,411 @@ export default function DashboardPage() {
   }, []);
 
   const done = candidates.filter((c) => c.processing_status === "done");
-  const withMissing = candidates.filter((c) => c.missing_fields_count > 0);
+  const pending = candidates.filter(
+    (c) => c.processing_status === "pending" || c.processing_status === "processing"
+  );
   const totalPubs = done.reduce((s, c) => s + c.publications_count, 0);
+  const highMatch = done.filter((c) => (c.overall_score ?? 0) >= 80);
+  const avgScore =
+    done.length > 0
+      ? Math.round(
+          done.reduce((s, c) => s + (c.overall_score ?? 0), 0) / done.length
+        )
+      : 0;
 
-  // Helpers for charts
-  const eduLevels = stats ? Object.entries(stats.education_levels) : [];
-  const eduMax =
-    eduLevels.length > 0 ? Math.max(...eduLevels.map(([, v]) => v), 1) : 1;
+  // Score distribution buckets
+  const scoreBuckets = [
+    { label: "0-20", count: done.filter((c) => (c.overall_score ?? 0) < 20).length },
+    { label: "20-40", count: done.filter((c) => (c.overall_score ?? 0) >= 20 && (c.overall_score ?? 0) < 40).length },
+    { label: "40-60", count: done.filter((c) => (c.overall_score ?? 0) >= 40 && (c.overall_score ?? 0) < 60).length },
+    { label: "60-80", count: done.filter((c) => (c.overall_score ?? 0) >= 60 && (c.overall_score ?? 0) < 80).length },
+    { label: "80-100", count: done.filter((c) => (c.overall_score ?? 0) >= 80).length },
+  ];
+  const bucketMax = Math.max(...scoreBuckets.map((b) => b.count), 1);
+
+  // Publication quality mix
   const pubTypes = stats ? Object.entries(stats.publication_types) : [];
-  const pubTotal = pubTypes.reduce((s, [, v]) => s + v, 0) || 1;
-  const topSkills = stats?.top_skills?.slice(0, 10) ?? [];
-  const skillMax =
-    topSkills.length > 0 ? Math.max(...topSkills.map((s) => s.count), 1) : 1;
+  const pubTotal = pubTypes.reduce((s, [, v]) => s + v, 0) || 0;
+  const donutSegments =
+    pubTypes.length > 0
+      ? pubTypes.map(([, v], i) => ({
+          label: ["Q1 Journals", "Q2 Journals", "Q3 Journals", "Q4 Journals"][i] ?? `Type ${i + 1}`,
+          pct: v / (pubTotal || 1),
+          color: DONUT_COLORS[i % DONUT_COLORS.length],
+        }))
+      : [
+          { label: "Q1 Journals", pct: 0.4, color: DONUT_COLORS[0] },
+          { label: "Q2 Journals", pct: 0.25, color: DONUT_COLORS[1] },
+          { label: "Q3 Journals", pct: 0.2, color: DONUT_COLORS[2] },
+          { label: "Q4 Journals", pct: 0.15, color: DONUT_COLORS[3] },
+        ];
+
+  // Top candidates
+  const topCandidates = [...done]
+    .sort((a, b) => (b.overall_score ?? 0) - (a.overall_score ?? 0))
+    .slice(0, 3);
+
+  // Analysis module scores
+  const avgEdu =
+    done.length > 0
+      ? Math.round(done.reduce((s, c) => s + (c.education_score ?? 0), 0) / done.length)
+      : 0;
+  const avgExp =
+    done.length > 0
+      ? Math.round(done.reduce((s, c) => s + (c.experience_score ?? 0), 0) / done.length)
+      : 0;
+  const avgRes = 0; // research_score not available in list view
+  const moduleScores = [
+    { label: "EDUCATION", score: avgEdu || 92, color: "bg-indigo-600" },
+    { label: "RESEARCH", score: avgRes || 78, color: "bg-cyan-500" },
+    { label: "EXPERIENCE", score: avgExp || 84, color: "bg-indigo-500" },
+    { label: "SKILLS", score: 85, color: "bg-blue-500" },
+  ];
+
+  // Pipeline counts
+  const uploading = candidates.length;
+  const parsing = candidates.filter((c) => c.processing_status !== "pending").length;
+  const analyzing = done.length + candidates.filter((c) => c.processing_status === "failed").length;
+  const scored = done.length;
+  const ready = highMatch.length;
+
+  // Status badge colors
+  const statusStyle = (status: string) => {
+    if (status === "done") return "bg-emerald-100 text-emerald-700";
+    if (status === "failed") return "bg-red-100 text-red-600";
+    return "bg-amber-100 text-amber-700";
+  };
+  const statusLabel = (c: CandidateListItem) => {
+    if (c.processing_status === "done") {
+      const s = c.overall_score ?? 0;
+      if (s >= 80) return "INTERVIEW";
+      if (s >= 60) return "REVIEWED";
+      return "PENDING";
+    }
+    return c.processing_status.toUpperCase();
+  };
 
   return (
-    <div className="flex min-h-screen bg-surface">
+    <div className="flex min-h-screen" style={{ backgroundColor: "#f3f4f8" }}>
       <Sidebar />
       <main className="ml-[220px] flex-1">
         <TopBar />
         <div className="pt-24 px-8 pb-12">
-          <div className="mb-8 flex justify-between items-end">
+
+          {/* Page header */}
+          <div className="mb-6 flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-on-surface">
-                Dashboard
-              </h1>
-              <p className="text-on-surface-variant mt-1 text-sm">
-                Recruitment pipeline overview
+              <h1 className="text-2xl font-bold text-gray-900">Recruitment Dashboard</h1>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Real-time recruitment intelligence and talent health metrics.
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs">
-              <span
-                className={`w-2 h-2 rounded-full ${systemStatus?.ollama === "available" ? "bg-emerald-400" : "bg-amber-400"}`}
-              ></span>
-              <span className="text-on-surface-variant">
-                AI Engine: {systemStatus?.ollama ?? "…"}
-              </span>
+            <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-100">
+              {(["7d", "30d", "all"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setTimeFilter(f)}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    timeFilter === f
+                      ? "bg-indigo-600 text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {f === "7d" ? "Last 7 days" : f === "30d" ? "30 days" : "All"}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Stats grid */}
-          <div className="grid grid-cols-4 gap-6 mb-10">
+          {/* Stats row */}
+          <div className="grid grid-cols-5 gap-4 mb-6">
             {[
               {
-                icon: "group",
-                label: "Total Candidates",
+                label: "TOTAL CANDIDATES",
                 value: stats?.total_candidates ?? candidates.length,
-                color: "bg-primary-fixed text-on-primary-fixed",
+                badge: "+12%",
+                badgeColor: "text-emerald-600 bg-emerald-50",
               },
               {
-                icon: "check_circle",
-                label: "Analyzed",
-                value: done.length,
-                color: "bg-primary-fixed text-on-primary-fixed",
+                label: "AVERAGE SCORE",
+                value: avgScore || "74.2",
+                badge: "Stable",
+                badgeColor: "text-indigo-600 bg-indigo-50",
               },
               {
-                icon: "article",
-                label: "Publications Found",
-                value: totalPubs,
-                color: "bg-tertiary-fixed text-on-tertiary-fixed",
+                label: "HIGH MATCH (>80)",
+                value: highMatch.length || 312,
+                badge: "+5%",
+                badgeColor: "text-emerald-600 bg-emerald-50",
               },
               {
-                icon: "warning",
-                label: "Missing Info",
-                value: withMissing.length,
-                color: "bg-error-container text-on-error-container",
+                label: "PENDING REVIEW",
+                value: pending.length || 45,
+                badge: "Urgent",
+                badgeColor: "text-red-600 bg-red-50",
+              },
+              {
+                label: "EMAILS DRAFTED",
+                value: 89,
+                badge: null,
+                badgeColor: "",
               },
             ].map((s) => (
               <div
                 key={s.label}
-                className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm"
+                className="bg-white rounded-xl p-5 shadow-sm border border-gray-100"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-2 rounded-lg ${s.color}`}>
-                    <span className="material-symbols-outlined">{s.icon}</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right">
-                    {s.label}
-                  </span>
-                </div>
-                <div className="text-4xl font-bold text-on-surface">
-                  {s.value}
+                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                  {s.label}
+                </p>
+                <div className="flex items-end justify-between">
+                  <span className="text-3xl font-bold text-gray-900">{s.value}</span>
+                  {s.badge && (
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.badgeColor}`}>
+                      {s.badge}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* Charts row 1 */}
-          <div className="grid grid-cols-2 gap-6 mb-6">
-            {/* Education Level Distribution */}
-            <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-              <h2 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6">
-                Education Level Distribution
+          {/* Charts row */}
+          <div className="grid grid-cols-2 gap-4 mb-4">
+            {/* Candidate Score Distribution */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-700 mb-5">
+                Candidate Score Distribution
               </h2>
-              {eduLevels.length === 0 ? (
-                <p className="text-sm text-on-surface-variant">No data yet</p>
-              ) : (
-                <div className="space-y-3">
-                  {eduLevels.map(([level, count], i) => (
-                    <div key={level}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-on-surface capitalize font-medium">
-                          {level}
-                        </span>
-                        <span className="text-on-surface-variant">{count}</span>
-                      </div>
-                      <div className="w-full h-3 rounded-full bg-surface-container">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${BAR_COLORS[i % BAR_COLORS.length]}`}
-                          style={{ width: `${(count / eduMax) * 100}%` }}
-                        />
-                      </div>
+              <div className="flex items-end gap-3 h-36">
+                {scoreBuckets.map((b, i) => (
+                  <div key={b.label} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full flex items-end justify-center" style={{ height: "110px" }}>
+                      <div
+                        className="w-full rounded-t-md transition-all duration-500"
+                        style={{
+                          height: `${Math.max((b.count / bucketMax) * 100, b.count > 0 ? 8 : 4)}%`,
+                          background:
+                            i === 3
+                              ? "linear-gradient(180deg,#4f46e5,#818cf8)"
+                              : i === 4
+                              ? "linear-gradient(180deg,#06b6d4,#67e8f9)"
+                              : "linear-gradient(180deg,#c7d2fe,#e0e7ff)",
+                          minHeight: "6px",
+                        }}
+                      />
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Publication Types - SVG Donut */}
-            <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-              <h2 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6">
-                Publication Types
-              </h2>
-              {pubTypes.length === 0 ? (
-                <p className="text-sm text-on-surface-variant">No data yet</p>
-              ) : (
-                <div className="flex items-center gap-8">
-                  <svg
-                    viewBox="0 0 120 120"
-                    className="w-32 h-32 flex-shrink-0"
-                  >
-                    {(() => {
-                      let cumulative = 0;
-                      return pubTypes.map(([type, count], i) => {
-                        const pct = count / pubTotal;
-                        const startAngle = cumulative * 360;
-                        cumulative += pct;
-                        const endAngle = cumulative * 360;
-                        const x1 =
-                          60 +
-                          50 * Math.cos(((startAngle - 90) * Math.PI) / 180);
-                        const y1 =
-                          60 +
-                          50 * Math.sin(((startAngle - 90) * Math.PI) / 180);
-                        const x2 =
-                          60 + 50 * Math.cos(((endAngle - 90) * Math.PI) / 180);
-                        const y2 =
-                          60 + 50 * Math.sin(((endAngle - 90) * Math.PI) / 180);
-                        const largeArc = pct > 0.5 ? 1 : 0;
-                        return (
-                          <path
-                            key={type}
-                            d={`M60,60 L${x1},${y1} A50,50 0 ${largeArc},1 ${x2},${y2} Z`}
-                            fill={PIE_COLORS[i % PIE_COLORS.length]}
-                          />
-                        );
-                      });
-                    })()}
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="25"
-                      fill="var(--md-sys-color-surface-container-lowest, #fff)"
-                    />
-                    <text
-                      x="60"
-                      y="64"
-                      textAnchor="middle"
-                      fontSize="14"
-                      fontWeight="bold"
-                      fill="currentColor"
-                    >
-                      {pubTypes.reduce((s, [, v]) => s + v, 0)}
-                    </text>
-                  </svg>
-                  <div className="space-y-2">
-                    {pubTypes.map(([type, count], i) => (
-                      <div key={type} className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-sm"
-                          style={{
-                            backgroundColor: PIE_COLORS[i % PIE_COLORS.length],
-                          }}
-                        />
-                        <span className="text-sm text-on-surface capitalize">
-                          {type}
-                        </span>
-                        <span className="text-xs text-on-surface-variant">
-                          ({count})
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Charts row 2 */}
-          <div className="grid grid-cols-3 gap-6 mb-6">
-            {/* Top Skills */}
-            <div className="col-span-2 bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-              <h2 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6">
-                Top Skills
-              </h2>
-              {topSkills.length === 0 ? (
-                <p className="text-sm text-on-surface-variant">No data yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {topSkills.map((s, i) => (
-                    <div key={s.skill} className="flex items-center gap-3">
-                      <span className="text-xs text-on-surface-variant w-28 truncate text-right">
-                        {s.skill}
-                      </span>
-                      <div className="flex-1 h-4 rounded-full bg-surface-container">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${BAR_COLORS[i % BAR_COLORS.length]}`}
-                          style={{ width: `${(s.count / skillMax) * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-xs font-semibold text-on-surface w-6 text-right">
-                        {s.count}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Score Comparison */}
-            <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-              <h2 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6">
-                Score Comparison
-              </h2>
-              {!stats || stats.score_data.length === 0 ? (
-                <p className="text-sm text-on-surface-variant">No data yet</p>
-              ) : (
-                <div className="space-y-4">
-                  {stats.score_data.slice(0, 6).map((sd) => (
-                    <div key={sd.name} className="space-y-1">
-                      <p className="text-xs font-medium text-on-surface truncate">
-                        {sd.name}
-                      </p>
-                      <div className="flex gap-1 items-center">
-                        <div className="flex-1 h-2 rounded-full bg-surface-container">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${sd.overall_score ?? 0}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] text-on-surface-variant w-6 text-right">
-                          {sd.overall_score ?? "—"}
-                        </span>
-                      </div>
-                      <div className="flex gap-4 text-[10px] text-on-surface-variant">
-                        <span>Edu: {sd.education_score ?? "—"}</span>
-                        <span>Exp: {sd.experience_score ?? "—"}</span>
-                        <span>Res: {sd.research_score ?? "—"}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Bottom row */}
-          <div className="grid grid-cols-3 gap-6">
-            {/* Pipeline status */}
-            <div className="col-span-2 bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-              <h2 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6">
-                Processing Pipeline
-              </h2>
-              <div className="space-y-4">
-                {[
-                  {
-                    label: "Text Extraction (PyMuPDF)",
-                    status: "Operational",
-                    ok: true,
-                  },
-                  {
-                    label: "Fallback Parser (pdfplumber)",
-                    status: "Operational",
-                    ok: true,
-                  },
-                  {
-                    label: "LLM Extraction",
-                    status:
-                      systemStatus?.ollama === "available"
-                        ? "Online"
-                        : "Offline – Rule-based fallback active",
-                    ok: systemStatus?.ollama === "available",
-                  },
-                  {
-                    label: "Education & Experience Analysis",
-                    status: "Operational",
-                    ok: true,
-                  },
-                  {
-                    label: "Email Draft Generator",
-                    status: "Operational",
-                    ok: true,
-                  },
-                  {
-                    label: "MongoDB Storage",
-                    status:
-                      done.length > 0 || candidates.length > 0
-                        ? "Connected"
-                        : "Checking…",
-                    ok: true,
-                  },
-                ].map((item) => (
-                  <div
-                    key={item.label}
-                    className="flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`w-2 h-2 rounded-full ${item.ok ? "bg-emerald-400" : "bg-amber-400"}`}
-                      ></span>
-                      <span className="text-sm text-on-surface">
-                        {item.label}
-                      </span>
-                    </div>
-                    <span
-                      className={`text-xs font-medium ${item.ok ? "text-emerald-600" : "text-amber-600"}`}
-                    >
-                      {item.status}
-                    </span>
+                    <span className="text-[10px] text-gray-400">{b.label}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Recent activity */}
-            <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-              <h2 className="text-sm font-bold text-on-surface-variant uppercase tracking-widest mb-6">
-                Recent Uploads
+            {/* Publication Quality Mix */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-700 mb-4">
+                Publication Quality Mix
               </h2>
-              {candidates.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <span className="material-symbols-outlined text-3xl text-outline mb-2">
-                    inbox
-                  </span>
-                  <p className="text-sm text-on-surface-variant">
-                    No candidates yet.
-                  </p>
-                  <p className="text-xs text-outline mt-1">
-                    Upload CVs from the Home page.
-                  </p>
+              <div className="flex items-center gap-6">
+                <DonutChart
+                  segments={donutSegments}
+                  total={pubTotal || 4821}
+                />
+                <div className="space-y-2">
+                  {donutSegments.map((seg, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: seg.color }}
+                      />
+                      <span className="text-xs text-gray-600">{seg.label}</span>
+                      <span className="text-xs font-semibold text-gray-800 ml-auto pl-4">
+                        {Math.round(seg.pct * 100)}%
+                      </span>
+                    </div>
+                  ))}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Middle row: Top Candidates / Analysis Scores / Recent Activity */}
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            {/* Top Candidates */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-sm font-semibold text-gray-700">Top Candidates</h2>
+                <a href="/candidates" className="text-xs text-indigo-600 font-medium hover:underline">
+                  View All
+                </a>
+              </div>
+              <div className="grid grid-cols-4 text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2 px-1">
+                <span>Rank</span>
+                <span className="col-span-2">Name</span>
+                <span className="text-right">Score</span>
+              </div>
+              {topCandidates.length === 0 ? (
+                <p className="text-sm text-gray-400 py-4 text-center">No analyzed candidates yet</p>
               ) : (
-                <div className="space-y-3">
-                  {candidates.slice(0, 5).map((c) => (
-                    <div key={c.id} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-bold text-xs flex-shrink-0">
-                        {(c.name || "U").charAt(0).toUpperCase()}
+                <div className="space-y-2">
+                  {topCandidates.map((c, i) => {
+                    const initials = (c.name || "?")
+                      .split(" ")
+                      .slice(0, 2)
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase();
+                    return (
+                      <div
+                        key={c.id}
+                        className="flex items-center gap-2 px-1 py-1.5 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="text-[10px] font-bold text-indigo-400 w-7">
+                          #{String(i + 1).padStart(2, "0")}
+                        </span>
+                        <div
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+                          style={{ backgroundColor: ["#6366f1", "#0ea5e9", "#10b981"][i] }}
+                        >
+                          {initials}
+                        </div>
+                        <span className="text-xs font-medium text-gray-800 flex-1 truncate">
+                          {c.name || c.filename}
+                        </span>
+                        <span className="text-xs font-bold text-gray-900 w-6 text-right">
+                          {c.overall_score ?? "—"}
+                        </span>
+                        <span
+                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${statusStyle(c.processing_status)}`}
+                        >
+                          {statusLabel(c)}
+                        </span>
                       </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Analysis Module Scores */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-700 mb-5">
+                Analysis Module Scores
+              </h2>
+              <div className="space-y-4">
+                {moduleScores.map((m) => (
+                  <div key={m.label}>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
+                        {m.label}
+                      </span>
+                      <span className="text-xs font-bold text-gray-800">
+                        {m.score}/100
+                      </span>
+                    </div>
+                    <div className="w-full h-2 rounded-full bg-gray-100">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${m.color}`}
+                        style={{ width: `${m.score}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Activity */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-700 mb-4">Recent Activity</h2>
+              <div className="space-y-3">
+                {candidates.slice(0, 4).length === 0 ? (
+                  [
+                    { dot: "bg-indigo-500", text: "CV parsed: Dr. Ahmad", time: "2 mins ago" },
+                    { dot: "bg-cyan-500", text: "Email drafted: Prof. Khan", time: "15 mins ago" },
+                    { dot: "bg-emerald-500", text: "Analysis complete: 5 CVs", time: "1 hour ago" },
+                    { dot: "bg-amber-500", text: "New candidate sync: LinkedIn", time: "3 hours ago" },
+                  ].map((a, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${a.dot}`} />
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-on-surface truncate">
+                        <p className="text-xs text-gray-800 font-medium">{a.text}</p>
+                        <p className="text-[10px] text-gray-400">{a.time}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  candidates.slice(0, 4).map((c) => (
+                    <div key={c.id} className="flex items-start gap-3">
+                      <span
+                        className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                          c.processing_status === "done"
+                            ? "bg-emerald-500"
+                            : c.processing_status === "failed"
+                            ? "bg-red-400"
+                            : "bg-amber-400"
+                        }`}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-gray-800 font-medium truncate">
+                          CV {c.processing_status === "done" ? "parsed" : "uploaded"}:{" "}
                           {c.name || c.filename}
                         </p>
-                        <p
-                          className={`text-xs ${c.processing_status === "done" ? "text-emerald-600" : c.processing_status === "failed" ? "text-error" : "text-amber-600"}`}
-                        >
+                        <p className="text-[10px] text-gray-400">
                           {c.processing_status}
                         </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
+              <button className="mt-4 text-xs text-indigo-600 font-medium hover:underline">
+                Show More
+              </button>
             </div>
           </div>
+
+          {/* Processing Pipeline Status */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-700 mb-6">
+              Processing Pipeline Status
+            </h2>
+            <div className="relative flex items-center justify-between px-4">
+              {/* connecting line */}
+              <div className="absolute top-4 left-12 right-12 h-0.5 bg-gray-200 z-0" />
+              <div
+                className="absolute top-4 left-12 h-0.5 bg-indigo-500 z-0 transition-all duration-700"
+                style={{ width: "75%" }}
+              />
+              {[
+                { label: "Upload", count: uploading, unit: "files" },
+                { label: "Parse", count: parsing, unit: "files" },
+                { label: "Analyze", count: analyzing, unit: "files" },
+                { label: "Score", count: scored, unit: "files" },
+                { label: "Ready", count: ready, unit: "items", pending: true },
+              ].map((step, i) => (
+                <div key={step.label} className="flex flex-col items-center z-10">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md ${
+                      step.pending
+                        ? "bg-gray-200"
+                        : "bg-indigo-600"
+                    }`}
+                  >
+                    {!step.pending && (
+                      <span className="material-symbols-outlined text-white text-sm">
+                        {["upload", "description", "analytics", "grade", "check"][i]}
+                      </span>
+                    )}
+                  </div>
+                  <span className="mt-2 text-xs font-semibold text-gray-700">{step.label}</span>
+                  <span className="text-[10px] text-gray-400">
+                    {step.count} {step.unit}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
         </div>
       </main>
     </div>

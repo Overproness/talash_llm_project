@@ -939,7 +939,18 @@ export default function CandidateProfilePage() {
                             {pub.year || "—"}
                           </td>
                           <td className="px-5 py-3 text-xs text-primary">
-                            {pub.doi || "—"}
+                            {pub.doi ? (
+                              <a
+                                href={`https://doi.org/${pub.doi}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-primary/70 break-all"
+                              >
+                                {pub.doi}
+                              </a>
+                            ) : (
+                              "—"
+                            )}
                           </td>
                           {researchProfile &&
                             (() => {

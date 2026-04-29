@@ -205,6 +205,61 @@ def _infer_publisher_from_venue(venue: str) -> str:
     return "unknown"
 
 
+# ─── CrossRef DOI lookup ─────────────────────────────────────────────────────
+
+_CROSSREF_BASE = "https://api.crossref.org/works"
+_crossref_cache: dict[str, Optional[str]] = {}
+
+
+async def _crossref_doi_lookup(title: str) -> Optional[str]:
+    """
+    Look up a DOI from CrossRef by paper title.
+    Returns the DOI string (e.g. '10.1109/ACCESS.2024.123456') or None if not found.
+    Uses fuzzy title matching to avoid false positives.
+    """
+    if not title or len(title) < 15:
+        return None
+
+    cache_key = title.lower().strip()
+    if cache_key in _crossref_cache:
+        return _crossref_cache[cache_key]
+
+    try:
+        params = {
+            "query.title": title,
+            "rows": 1,
+            "select": "DOI,title,score",
+        }
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(_CROSSREF_BASE, params=params)
+            if resp.status_code != 200:
+                _crossref_cache[cache_key] = None
+                return None
+
+            items = resp.json().get("message", {}).get("items", [])
+            if not items:
+                _crossref_cache[cache_key] = None
+                return None
+
+            top = items[0]
+            doi = top.get("DOI", "")
+            result_titles = top.get("title", [])
+            result_title = result_titles[0] if result_titles else ""
+
+            if doi and result_title:
+                similarity = fuzz.token_set_ratio(title.lower(), result_title.lower())
+                if similarity >= 70:
+                    _crossref_cache[cache_key] = doi
+                    return doi
+
+            _crossref_cache[cache_key] = None
+            return None
+    except Exception as e:
+        logger.debug(f"CrossRef lookup failed for title '{title[:60]}': {e}")
+        _crossref_cache[cache_key] = None
+        return None
+
+
 # ─── Scopus API ───────────────────────────────────────────────────────────────
 
 _SCOPUS_BASE = "https://api.elsevier.com/content/serial/title"
@@ -920,6 +975,16 @@ async def analyze_full_research_profile(
         assess_book_publisher(book.publisher) for book in doc.books
     ]
 
+    # ── CrossRef DOI enrichment ───────────────────────────────────────────────
+    enriched_pubs: list[dict] = []
+    for pub in pubs:
+        pub_dict = pub.model_dump()
+        if not pub.doi and pub.title:
+            found_doi = await _crossref_doi_lookup(pub.title)
+            if found_doi:
+                pub_dict["doi"] = found_doi
+        enriched_pubs.append(pub_dict)
+
     # ── Topic variability ─────────────────────────────────────────────────────
     topic_result = analyze_topic_variability(pubs)
 
@@ -975,6 +1040,7 @@ async def analyze_full_research_profile(
         scopus_indexed_count=scopus_count,
         topic_variability=topic_result,
         co_author_analysis=co_author_result,
+        enriched_publications=enriched_pubs,
     )
 
     profile.research_score = _compute_research_score(profile)

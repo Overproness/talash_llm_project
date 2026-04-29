@@ -1,6 +1,6 @@
-import Link from "next/link";
-import PublicNav from "@/components/public/PublicNav";
 import PublicFooter from "@/components/public/PublicFooter";
+import PublicNav from "@/components/public/PublicNav";
+import Link from "next/link";
 
 export default function PublicHomePage() {
   return (
@@ -84,7 +84,8 @@ export default function PublicHomePage() {
                 </div>
                 <p className="text-xs text-on-surface-variant leading-relaxed">
                   Candidate&apos;s recent nature publication creates a 94%
-                  alignment with your quantum computing lab&apos;s current focus.
+                  alignment with your quantum computing lab&apos;s current
+                  focus.
                 </p>
               </div>
             </div>

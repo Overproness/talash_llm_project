@@ -1,5 +1,5 @@
-import PublicNav from "@/components/public/PublicNav";
 import PublicFooter from "@/components/public/PublicFooter";
+import PublicNav from "@/components/public/PublicNav";
 
 export default function TermsPage() {
   return (
@@ -34,8 +34,8 @@ export default function TermsPage() {
               <p>
                 These Terms constitute a legally binding agreement between you
                 (whether personally or on behalf of an entity) and Talash
-                Insight (&quot;Company&quot;, &quot;we&quot;, &quot;us&quot;,
-                or &quot;our&quot;), concerning your access to and use of the
+                Insight (&quot;Company&quot;, &quot;we&quot;, &quot;us&quot;, or
+                &quot;our&quot;), concerning your access to and use of the
                 platform.
               </p>
             </section>

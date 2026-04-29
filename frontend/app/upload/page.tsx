@@ -178,18 +178,32 @@ export default function UploadPage() {
     setFiles((prev) => prev.filter((f) => f.file.name !== name));
 
   const getFileIcon = (name: string) => {
-    if (name.endsWith(".pdf")) return { icon: "picture_as_pdf", color: "text-red-500" };
-    if (name.endsWith(".docx") || name.endsWith(".doc")) return { icon: "description", color: "text-blue-500" };
+    if (name.endsWith(".pdf"))
+      return { icon: "picture_as_pdf", color: "text-red-500" };
+    if (name.endsWith(".docx") || name.endsWith(".doc"))
+      return { icon: "description", color: "text-blue-500" };
     return { icon: "insert_drive_file", color: "text-on-surface-variant" };
   };
 
   const statusBadge = (s: UploadStatus) => {
     const map: Record<UploadStatus, { label: string; className: string }> = {
-      idle: { label: "Queued", className: "bg-tertiary-fixed text-on-tertiary-fixed" },
-      uploading: { label: "Uploading", className: "bg-primary-fixed text-on-primary-fixed" },
-      parsing: { label: "Parsing", className: "bg-primary-fixed text-on-primary-fixed" },
+      idle: {
+        label: "Queued",
+        className: "bg-tertiary-fixed text-on-tertiary-fixed",
+      },
+      uploading: {
+        label: "Uploading",
+        className: "bg-primary-fixed text-on-primary-fixed",
+      },
+      parsing: {
+        label: "Parsing",
+        className: "bg-primary-fixed text-on-primary-fixed",
+      },
       done: { label: "Done", className: "bg-emerald-100 text-emerald-700" },
-      error: { label: "Failed", className: "bg-error-container text-on-error-container" },
+      error: {
+        label: "Failed",
+        className: "bg-error-container text-on-error-container",
+      },
     };
     return map[s];
   };
@@ -385,11 +399,11 @@ export default function UploadPage() {
                       Active
                     </span>
                     <button
-                      onClick={() =>
-                        setFolderMonitorActive((v) => !v)
-                      }
+                      onClick={() => setFolderMonitorActive((v) => !v)}
                       className={`w-8 h-4 rounded-full relative ml-2 transition-colors ${
-                        folderMonitorActive ? "bg-primary" : "bg-surface-container-high"
+                        folderMonitorActive
+                          ? "bg-primary"
+                          : "bg-surface-container-high"
                       }`}
                     >
                       <div

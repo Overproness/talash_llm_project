@@ -80,6 +80,15 @@ export const api = {
       message?: string
     }>(`/candidates/${id}/email-draft`, { method: 'POST' }),
 
+  regenerateEmailDraft: (id: string) =>
+    request<{
+      candidate_id: string
+      has_missing_info: boolean
+      email_draft: EmailDraft | null
+      missing_count?: number
+      message?: string
+    }>(`/candidates/${id}/email-draft?force=true`, { method: 'POST' }),
+
   getDashboardStats: () =>
     request<DashboardStats>('/dashboard/stats'),
 

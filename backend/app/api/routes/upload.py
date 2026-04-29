@@ -14,6 +14,7 @@ from app.core.database import get_db
 from app.models.candidate import CandidateDocument, UploadResponse
 from app.services.cv_parser import parse_cv
 from app.services.candidate_analyzer import run_full_analysis
+from app.services.email_generator import detect_missing_info_detailed, generate_email_draft
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -42,6 +43,19 @@ async def _process_cv_background(
                 {"$set": analysis_results},
             )
             logger.info(f"Analysis completed for {dest_path}")
+
+            # Auto-generate email draft and save to DB
+            try:
+                missing = detect_missing_info_detailed(parsed)
+                if missing:
+                    email_draft = await generate_email_draft(parsed, missing)
+                    await db.candidates.update_one(
+                        {"_id": ObjectId(candidate_id)},
+                        {"$set": {"email_draft": email_draft.model_dump()}},
+                    )
+                    logger.info(f"Email draft saved for {dest_path}")
+            except Exception as ee:
+                logger.warning(f"Email draft generation failed for {dest_path}: {ee}")
         except Exception as ae:
             logger.warning(f"Analysis failed for {dest_path}: {ae}")
             await db.candidates.update_one(

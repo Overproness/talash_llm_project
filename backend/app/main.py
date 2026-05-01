@@ -13,6 +13,7 @@ from app.core.database import connect_db, close_db, get_db
 from app.api.routes import upload, candidates, health, settings as settings_routes
 from app.api.routes import analysis
 from app.api.routes import admin as admin_routes
+from app.api.routes import auth as auth_routes
 from app.services.data_refresher import run_due_scrapers, run_monthly_scrapers, run_quarterly_scrapers
 from app.services.folder_watcher import FolderWatcher
 
@@ -101,6 +102,11 @@ async def lifespan(app: FastAPI):
     await connect_db()
     logger.info("MongoDB connected")
 
+    # Ensure unique index on users.email
+    db = get_db()
+    await db.users.create_index("email", unique=True)
+    logger.info("Ensured unique index on users.email")
+
     # ── On Vercel, seed /tmp/reference_data from the bundled static files ───
     import os, shutil
     if os.environ.get("VERCEL"):
@@ -185,6 +191,7 @@ app.add_middleware(
 )
 
 PREFIX = get_settings().api_prefix
+app.include_router(auth_routes.router, prefix=PREFIX, tags=["auth"])
 app.include_router(health.router, prefix=PREFIX, tags=["health"])
 app.include_router(upload.router, prefix=PREFIX, tags=["upload"])
 app.include_router(analysis.router, prefix=PREFIX, tags=["analysis"])

@@ -16,44 +16,38 @@ interface FileItem {
   progress: number;
 }
 
-const recentActivity = [
-  {
-    name: "Davis_James_Fullstack.pdf",
-    time: "Today, 10:24 AM",
-    size: "1.8 MB",
-    status: "processing" as const,
-  },
-  {
-    name: "Lee_Hana_Marketing_Lead.pdf",
-    time: "Today, 09:15 AM",
-    size: "3.2 MB",
-    status: "completed" as const,
-    score: 88,
-  },
-  {
-    name: "Portfolio_Archive_Final.zip",
-    time: "Yesterday, 04:50 PM",
-    size: "45.0 MB",
-    status: "failed" as const,
-    error: "Unsupported file format in archive",
-  },
-  {
-    name: "Patel_Anil_Cloud_Eng.pdf",
-    time: "Yesterday, 02:12 PM",
-    size: "2.1 MB",
-    status: "completed" as const,
-  },
-];
+type ActivityStatus = "processing" | "completed" | "failed";
+
+interface ActivityItem {
+  name: string;
+  time: string;
+  size: string;
+  status: ActivityStatus;
+  score?: number;
+  error?: string;
+}
+
+function formatActivityTime(d: Date): string {
+  const now = new Date();
+  const isToday =
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear();
+  const prefix = isToday ? "Today" : "Yesterday";
+  return `${prefix}, ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+}
 
 export default function UploadPage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<FileItem[]>([]);
+  const [activityHistory, setActivityHistory] = useState<ActivityItem[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [folderPath, setFolderPath] = useState(
     "C:\\Users\\HR_Team\\Recruitment\\Incoming_CVs",
   );
   const [folderMonitorActive, setFolderMonitorActive] = useState(true);
+  const [showErrorLog, setShowErrorLog] = useState(false);
 
   const addFiles = useCallback((incoming: FileList | null) => {
     if (!incoming) return;
@@ -91,6 +85,15 @@ export default function UploadPage() {
             : f,
         ),
       );
+      setActivityHistory((prev) => [
+        {
+          name: item.file.name,
+          time: formatActivityTime(new Date()),
+          size: `${(item.file.size / (1024 * 1024)).toFixed(1)} MB`,
+          status: "processing",
+        },
+        ...prev.filter((a) => a.name !== item.file.name),
+      ]);
       try {
         const res = await api.uploadCV(item.file);
         setFiles((prev) =>
@@ -143,6 +146,16 @@ export default function UploadPage() {
                     : f,
                 ),
               );
+              setActivityHistory((prev) => [
+                {
+                  name: item.file.name,
+                  time: formatActivityTime(new Date()),
+                  size: `${(item.file.size / (1024 * 1024)).toFixed(1)} MB`,
+                  status: "completed",
+                  score: candidate.overall_score ?? undefined,
+                },
+                ...prev,
+              ]);
             } else if (status === "failed") {
               const error = candidate.processing_error ?? "Processing failed.";
               setFiles((prev) =>
@@ -152,6 +165,16 @@ export default function UploadPage() {
                     : f,
                 ),
               );
+              setActivityHistory((prev) => [
+                {
+                  name: item.file.name,
+                  time: formatActivityTime(new Date()),
+                  size: `${(item.file.size / (1024 * 1024)).toFixed(1)} MB`,
+                  status: "failed",
+                  error,
+                },
+                ...prev,
+              ]);
             } else {
               setTimeout(poll, 1000);
             }
@@ -170,6 +193,16 @@ export default function UploadPage() {
               : f,
           ),
         );
+        setActivityHistory((prev) => [
+          {
+            name: item.file.name,
+            time: formatActivityTime(new Date()),
+            size: `${(item.file.size / (1024 * 1024)).toFixed(1)} MB`,
+            status: "failed",
+            error: errorMessage,
+          },
+          ...prev.filter((a) => a.name !== item.file.name),
+        ]);
       }
     }
   };
@@ -256,7 +289,7 @@ export default function UploadPage() {
               </div>
               <div className="text-3xl font-bold">{files.length}</div>
               <div className="mt-2 text-[10px] text-on-surface-variant">
-                +12% from last week
+                {files.length === 1 ? "1 file in queue" : `${files.length} files in queue`}
               </div>
             </div>
 
@@ -308,7 +341,7 @@ export default function UploadPage() {
               <div className="mt-2 text-[10px] text-emerald-600 font-medium">
                 {files.length > 0
                   ? `${Math.round((completedCount / files.length) * 100)}% Efficiency Rate`
-                  : "94% Efficiency Rate"}
+                  : "No files processed yet"}
               </div>
             </div>
 
@@ -325,7 +358,10 @@ export default function UploadPage() {
                 </span>
               </div>
               <div className="text-3xl font-bold text-error">{failedCount}</div>
-              <div className="mt-2 text-[10px] text-error font-medium underline cursor-pointer">
+              <div
+                className="mt-2 text-[10px] text-error font-medium underline cursor-pointer"
+                onClick={() => setShowErrorLog(true)}
+              >
                 View Error Log
               </div>
             </div>
@@ -394,9 +430,19 @@ export default function UploadPage() {
                     <h3 className="font-bold text-lg">Folder Monitor</h3>
                   </div>
                   <div className="flex items-center gap-3 px-4 py-1.5 bg-surface-container-low rounded-full">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-                      Active
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        folderMonitorActive
+                          ? "bg-emerald-500 animate-pulse"
+                          : "bg-gray-400"
+                      }`}
+                    />
+                    <span
+                      className={`text-[10px] font-bold uppercase tracking-widest ${
+                        folderMonitorActive ? "text-emerald-700" : "text-gray-500"
+                      }`}
+                    >
+                      {folderMonitorActive ? "Active" : "Inactive"}
                     </span>
                     <button
                       onClick={() => setFolderMonitorActive((v) => !v)}
@@ -579,15 +625,23 @@ export default function UploadPage() {
                 {/* Recent Activity */}
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="font-bold text-lg">Recent Activity</h3>
-                  <button className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline">
+                  <button
+                    onClick={() => setActivityHistory([])}
+                    className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline"
+                  >
                     Clear History
                   </button>
                 </div>
 
                 <div className="space-y-6">
-                  {recentActivity.map((item) => (
+                  {activityHistory.length === 0 ? (
+                    <p className="text-sm text-on-surface-variant text-center py-6">
+                      No activity yet. Upload a CV to get started.
+                    </p>
+                  ) : (
+                    activityHistory.slice(0, 5).map((item, idx) => (
                     <div
-                      key={item.name}
+                      key={`${item.name}-${idx}`}
                       className={`relative pl-6 border-l-2 ${
                         item.status === "processing"
                           ? "border-tertiary/20"
@@ -633,7 +687,7 @@ export default function UploadPage() {
                         </div>
                       )}
 
-                      {"score" in item && item.score && (
+                      {item.score !== undefined && (
                         <div className="mt-3 p-3 bg-surface-container-low rounded-xl flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] text-white font-bold">
@@ -643,47 +697,68 @@ export default function UploadPage() {
                               AI Talent Match Score
                             </div>
                           </div>
-                          <span className="material-symbols-outlined text-sm text-primary cursor-pointer">
-                            visibility
-                          </span>
                         </div>
                       )}
 
-                      {"error" in item && item.error && (
+                      {item.error && (
                         <div className="mt-2 text-[10px] text-error font-medium italic">
                           Error: {item.error}
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-
-                {/* AI Recommendation Banner */}
-                <div className="mt-12 p-6 primary-gradient rounded-2xl relative overflow-hidden group">
-                  <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-9xl text-white/10 group-hover:scale-110 transition-transform">
-                    psychology
-                  </span>
-                  <div className="relative z-10">
-                    <div className="text-[10px] font-bold text-white/70 uppercase tracking-widest mb-1">
-                      AI Recommendation
-                    </div>
-                    <div className="text-white text-sm font-medium mb-4 leading-relaxed">
-                      System has detected 12 matching candidates for the open
-                      &ldquo;Senior Architect&rdquo; role from recent uploads.
-                    </div>
-                    <button
-                      onClick={() => router.push("/candidates")}
-                      className="bg-white text-primary text-[10px] font-bold px-4 py-2 rounded-lg uppercase tracking-widest hover:bg-opacity-90 transition-all"
-                    >
-                      Review Matches
-                    </button>
-                  </div>
+                  ))
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </div>
       </main>
+
+      {/* Error Log Modal */}
+      {showErrorLog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onClick={() => setShowErrorLog(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-lg mx-4 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900">Error Log</h3>
+              <button
+                onClick={() => setShowErrorLog(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            <div className="px-6 py-4 max-h-80 overflow-y-auto space-y-3">
+              {files.filter((f) => f.status === "error").length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-6">No errors to display.</p>
+              ) : (
+                files
+                  .filter((f) => f.status === "error")
+                  .map((f) => (
+                    <div key={f.file.name} className="p-3 bg-red-50 rounded-xl border border-red-100">
+                      <p className="text-sm font-semibold text-gray-800">{f.file.name}</p>
+                      <p className="text-xs text-red-600 mt-1">{f.message || "Unknown error"}</p>
+                    </div>
+                  ))
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => setShowErrorLog(false)}
+                className="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,36 +1,57 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
-function LoginForm() {
+export default function SignupPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { login } = useAuth();
 
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const tokenData = await api.login(email, password);
+      const tokenData = await api.signup(fullName, email, password, confirmPassword);
       const userData = await api.getMe(tokenData.access_token);
       login(tokenData.access_token, userData);
-      const from = searchParams.get("from") || "/dashboard";
-      router.push(from);
+      router.push("/dashboard");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Login failed";
-      if (message.includes("401")) {
-        setError("Invalid email or password.");
+      const message = err instanceof Error ? err.message : "Signup failed";
+      if (message.includes("409")) {
+        setError("An account with this email already exists.");
+      } else if (message.includes("422")) {
+        // Extract server-side validation message
+        try {
+          const detail = message.replace(/^API 422: /, "");
+          const parsed = JSON.parse(detail);
+          const first = parsed?.detail?.[0]?.msg;
+          setError(first ?? "Please check your inputs and try again.");
+        } catch {
+          setError("Please check your inputs and try again.");
+        }
       } else {
         setError("Something went wrong. Please try again.");
       }
@@ -63,19 +84,19 @@ function LoginForm() {
                     className="material-symbols-outlined text-primary-fixed text-6xl relative z-10"
                     style={{ fontVariationSettings: "'FILL' 1" }}
                   >
-                    hub
+                    person_add
                   </span>
                   <div className="absolute bottom-4 left-0 right-0 text-center text-primary-fixed-dim text-[10px] tracking-[0.3em] font-bold">
-                    SAFE CONNECTIVITY
+                    JOIN TALASH
                   </div>
                 </div>
                 <div className="mt-8">
                   <h2 className="text-2xl font-semibold text-on-surface mb-2">
-                    The Intelligent Gateway.
+                    Start recruiting smarter.
                   </h2>
                   <p className="text-sm text-on-surface-variant max-w-sm">
-                    Connect with algorithmic precision. Unlock advanced research
-                    intelligence and streamline your talent discovery.
+                    Create your account and gain instant access to AI-powered
+                    CV analysis and intelligent candidate ranking.
                   </p>
                 </div>
               </div>
@@ -89,10 +110,10 @@ function LoginForm() {
             </div>
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-on-surface mb-2">
-                Welcome back
+                Create an account
               </h1>
               <p className="text-base text-on-surface-variant">
-                Please enter your details to sign in.
+                Fill in your details to get started.
               </p>
             </div>
 
@@ -102,7 +123,35 @@ function LoginForm() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Full Name */}
+              <div>
+                <label
+                  htmlFor="fullName"
+                  className="block text-[0.75rem] font-semibold tracking-widest uppercase text-on-surface-variant mb-2"
+                >
+                  Full Name
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-outline">
+                      person
+                    </span>
+                  </div>
+                  <input
+                    id="fullName"
+                    name="fullName"
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Your full name"
+                    className="w-full pl-11 pr-4 py-3 bg-surface-container-low border border-outline-variant/50 rounded-lg text-base text-on-surface placeholder-outline focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Email */}
               <div>
                 <label
                   htmlFor="email"
@@ -128,15 +177,15 @@ function LoginForm() {
                   />
                 </div>
               </div>
+
+              {/* Password */}
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label
-                    htmlFor="password"
-                    className="block text-[0.75rem] font-semibold tracking-widest uppercase text-on-surface-variant"
-                  >
-                    Password
-                  </label>
-                </div>
+                <label
+                  htmlFor="password"
+                  className="block text-[0.75rem] font-semibold tracking-widest uppercase text-on-surface-variant mb-2"
+                >
+                  Password
+                </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-outline">
@@ -148,9 +197,10 @@ function LoginForm() {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     required
+                    minLength={8}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Min. 8 characters"
                     className="w-full pl-11 pr-12 py-3 bg-surface-container-low border border-outline-variant/50 rounded-lg text-base text-on-surface placeholder-outline focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
                   />
                   <button
@@ -164,6 +214,43 @@ function LoginForm() {
                   </button>
                 </div>
               </div>
+
+              {/* Confirm Password */}
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-[0.75rem] font-semibold tracking-widest uppercase text-on-surface-variant mb-2"
+                >
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-outline">
+                      lock_check
+                    </span>
+                  </div>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirm ? "text" : "password"}
+                    required
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat your password"
+                    className="w-full pl-11 pr-12 py-3 bg-surface-container-low border border-outline-variant/50 rounded-lg text-base text-on-surface placeholder-outline focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-on-surface-variant hover:text-on-surface focus:outline-none"
+                  >
+                    <span className="material-symbols-outlined text-lg">
+                      {showConfirm ? "visibility_off" : "visibility"}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -174,11 +261,11 @@ function LoginForm() {
                     <span className="material-symbols-outlined text-sm animate-spin">
                       progress_activity
                     </span>
-                    Signing in…
+                    Creating account…
                   </>
                 ) : (
                   <>
-                    Log In
+                    Create Account
                     <span className="material-symbols-outlined text-sm">
                       arrow_forward
                     </span>
@@ -187,14 +274,14 @@ function LoginForm() {
               </button>
             </form>
 
-            <div className="mt-10 text-center">
+            <div className="mt-8 text-center">
               <p className="text-sm text-on-surface-variant">
-                Don&apos;t have an account?{" "}
+                Already have an account?{" "}
                 <Link
-                  href="/signup"
+                  href="/login"
                   className="text-primary font-semibold hover:text-on-primary-fixed-variant transition-colors underline underline-offset-4"
                 >
-                  Sign Up
+                  Log In
                 </Link>
               </p>
             </div>
@@ -220,12 +307,3 @@ function LoginForm() {
     </div>
   );
 }
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
-  );
-}
-

@@ -1,3 +1,17 @@
+// ─── Auth types ───────────────────────────────────────────────────────────────
+
+export interface UserPublic {
+  id: string
+  full_name: string
+  email: string
+  created_at: string
+}
+
+export interface Token {
+  access_token: string
+  token_type: string
+}
+
 // ─── Sub-types ────────────────────────────────────────────────────────────────
 
 export interface PersonalInfo {

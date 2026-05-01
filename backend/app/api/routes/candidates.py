@@ -10,6 +10,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.database import get_db
 from app.models.candidate import CandidateListItem
+from app.services.auth_service import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -52,6 +53,7 @@ async def list_candidates(
     limit: int = Query(50, ge=1, le=200),
     status: Optional[str] = Query(None),
     db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Return paginated list of candidates."""
     filter_q = {}
@@ -67,6 +69,7 @@ async def list_candidates(
 async def get_candidate(
     candidate_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Return full structured data for a single candidate."""
     try:
@@ -86,6 +89,7 @@ async def get_candidate(
 async def delete_candidate(
     candidate_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Delete a candidate record."""
     try:

@@ -1,9 +1,10 @@
 """LLM provider settings — get and hot-swap the active provider at runtime."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.core.config import get_settings
+from app.services.auth_service import get_current_user
 from app.services.llm_client import (
     get_active_model,
     get_active_provider,
@@ -47,7 +48,7 @@ class ProviderUpdate(BaseModel):
 
 
 @router.get("/settings/llm")
-async def get_llm_settings():
+async def get_llm_settings(current_user: dict = Depends(get_current_user)):
     """Return current LLM config and which providers are configured."""
     settings = get_settings()
     available = await is_llm_available()
@@ -69,7 +70,7 @@ async def get_llm_settings():
 
 
 @router.post("/settings/llm")
-async def update_llm_provider(body: ProviderUpdate):
+async def update_llm_provider(body: ProviderUpdate, current_user: dict = Depends(get_current_user)):
     """Hot-swap the active LLM provider (takes effect immediately, no restart)."""
     if body.provider not in PROVIDERS:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {body.provider!r}")

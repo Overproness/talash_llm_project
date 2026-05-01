@@ -59,6 +59,11 @@ class Settings(BaseSettings):
                 self.reference_data_dir = "/tmp/reference_data"
         return self
 
+    # ── Auth / JWT ────────────────────────────────────────────────────────────
+    secret_key: str = "change-this-in-production-use-a-long-random-string"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 10080  # 7 days
+
     # ── External APIs ─────────────────────────────────────────────────────────
     # Elsevier / Scopus API key (note: env var uses typo "elseivier_api_key")
     elseivier_api_key: str = ""

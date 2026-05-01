@@ -20,6 +20,7 @@ from app.models.candidate import (
     Patent,
     Supervision,
 )
+from app.services.auth_service import get_current_user
 from app.services.candidate_analyzer import run_full_analysis
 from app.services.email_generator import detect_missing_info_detailed, generate_email_draft
 
@@ -54,6 +55,7 @@ def _doc_to_candidate(doc: dict) -> CandidateDocument:
 async def analyze_candidate(
     candidate_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Run full analysis pipeline on a candidate (education, experience, research, summary)."""
     try:
@@ -92,6 +94,7 @@ async def generate_candidate_email(
     candidate_id: str,
     force: bool = False,
     db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Return the saved email draft for a candidate, or generate one if not yet cached.
     Pass ?force=true to regenerate regardless of any cached draft."""
@@ -144,6 +147,7 @@ async def generate_candidate_email(
 @router.get("/dashboard/stats")
 async def get_dashboard_stats(
     db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Return aggregate statistics for the dashboard."""
     pipeline_total = [{"$count": "total"}]
@@ -234,6 +238,7 @@ async def rank_candidates(
     limit: int = 50,
     min_score: float = 0.0,
     db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     """Return analyzed candidates ranked by overall_score (descending).
 

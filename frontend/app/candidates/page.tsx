@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { CandidateListItem } from "@/lib/types";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 const STATUS_COLORS: Record<string, string> = {
   done: "bg-emerald-100 text-emerald-700",
@@ -17,7 +18,8 @@ const STATUS_COLORS: Record<string, string> = {
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState<CandidateListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("search") ?? "");
 
   useEffect(() => {
     api
@@ -37,7 +39,7 @@ export default function CandidatesPage() {
     <div className="flex min-h-screen bg-surface">
       <Sidebar />
       <main className="ml-[220px] flex-1">
-        <TopBar />
+        <TopBar searchValue={search} onSearchChange={setSearch} />
         <div className="pt-24 px-8 pb-12">
           <div className="mb-8 flex justify-between items-end">
             <div>
@@ -55,19 +57,6 @@ export default function CandidatesPage() {
               <span className="material-symbols-outlined text-sm">add</span>
               Upload New CV
             </Link>
-          </div>
-
-          {/* Search */}
-          <div className="relative mb-6 max-w-md">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm">
-              search
-            </span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-surface-container-low border-none rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
-              placeholder="Search by name or filename…"
-            />
           </div>
 
           {/* Table */}

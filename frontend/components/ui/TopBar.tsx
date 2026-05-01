@@ -1,14 +1,35 @@
 "use client";
 
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 export default function TopBar({
   title,
   breadcrumb,
   action,
+  searchValue,
+  onSearchChange,
 }: {
   title?: string;
   breadcrumb?: string[];
   action?: React.ReactNode;
+  searchValue?: string;
+  onSearchChange?: (v: string) => void;
 }) {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const [localSearch, setLocalSearch] = useState("");
+
+  const initials = user?.full_name
+    ? user.full_name
+        .split(" ")
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "?";
+
   return (
     <header className="fixed top-0 right-0 w-[calc(100%-220px)] h-16 z-40 bg-white/80 backdrop-blur-md flex justify-between items-center px-8">
       {/* Left: Search / breadcrumb */}
@@ -39,6 +60,21 @@ export default function TopBar({
               className="w-full bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
               placeholder="Search candidates..."
               type="text"
+              value={onSearchChange !== undefined ? (searchValue ?? "") : localSearch}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (onSearchChange) {
+                  onSearchChange(val);
+                } else {
+                  setLocalSearch(val);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !onSearchChange) {
+                  const q = localSearch.trim();
+                  if (q) router.push(`/candidates?search=${encodeURIComponent(q)}`);
+                }
+              }}
             />
           </div>
         )}
@@ -52,16 +88,26 @@ export default function TopBar({
         </button>
         <div className="flex items-center gap-3 ml-2 border-l pl-6 border-outline-variant/30">
           <div className="text-right">
-            <div className="text-xs font-semibold text-on-surface">Admin</div>
-            <div className="text-[10px] text-on-surface-variant uppercase tracking-wider">
-              Recruiter
+            <div className="text-xs font-semibold text-on-surface">
+              {user?.full_name ?? "—"}
+            </div>
+            <div className="text-[10px] text-on-surface-variant uppercase tracking-wider truncate max-w-[140px]">
+              {user?.email ?? ""}
             </div>
           </div>
           <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed font-bold text-xs">
-            A
+            {initials}
           </div>
+          <button
+            onClick={logout}
+            title="Sign out"
+            className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-all"
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+          </button>
         </div>
       </div>
     </header>
   );
 }
+

@@ -12,6 +12,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models.candidate import CandidateDocument, UploadResponse
+from app.services.auth_service import get_current_user
 from app.services.cv_parser import parse_cv
 from app.services.candidate_analyzer import run_full_analysis
 from app.services.email_generator import detect_missing_info_detailed, generate_email_draft
@@ -75,6 +76,7 @@ async def upload_cv(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ):
     settings = get_settings()
 

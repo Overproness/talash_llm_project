@@ -8,10 +8,11 @@ POST /api/admin/scrapers/run/{name}      — trigger single scraper (BackgroundT
 
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from app.services.scrapers.base import load_metadata
 from app.services.data_refresher import run_all_scrapers, run_scraper, get_scrapers
+from app.services.auth_service import get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -20,20 +21,20 @@ _SCRAPER_NAMES = ["scimago_journals", "core_conferences", "hec_universities", "q
 
 
 @router.get("/admin/scrapers/status")
-async def scrapers_status():
+async def scrapers_status(current_user: dict = Depends(get_current_user)):
     """Return last-run metadata for all scrapers."""
     return load_metadata()
 
 
 @router.post("/admin/scrapers/run")
-async def scrapers_run_all(background_tasks: BackgroundTasks):
+async def scrapers_run_all(background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     """Trigger a full refresh of all scrapers in the background."""
     background_tasks.add_task(_run_all_bg)
     return {"status": "accepted", "message": "Full scraper refresh triggered in background"}
 
 
 @router.post("/admin/scrapers/run/{scraper_name}")
-async def scrapers_run_one(scraper_name: str, background_tasks: BackgroundTasks):
+async def scrapers_run_one(scraper_name: str, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     """Trigger a single scraper by name in the background."""
     scrapers = get_scrapers()
     if scraper_name not in scrapers:

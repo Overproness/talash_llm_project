@@ -72,7 +72,8 @@ MAX_FILE_SIZE_MB=50
 
 ```bash
 # Development (with auto-reload)
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+$env:PYTHONPATH = "d:\GitHub\talash_llm_project\backend"
+D:\Installed\Python\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 5100
 
 # Production
 uvicorn app.main:app --host 0.0.0.0 --port 8000

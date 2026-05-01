@@ -89,8 +89,17 @@ export default function DashboardPage() {
     api.health().then(setSystemStatus).catch(console.error);
   }, []);
 
-  const done = candidates.filter((c) => c.processing_status === "done");
-  const pending = candidates.filter(
+  // Filter candidates by the selected time range
+  const filteredCandidates = candidates.filter((c) => {
+    if (timeFilter === "all") return true;
+    const days = timeFilter === "7d" ? 7 : 30;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    return new Date(c.uploaded_at) >= cutoff;
+  });
+
+  const done = filteredCandidates.filter((c) => c.processing_status === "done");
+  const pending = filteredCandidates.filter(
     (c) =>
       c.processing_status === "pending" || c.processing_status === "processing",
   );
@@ -173,22 +182,21 @@ export default function DashboardPage() {
       : 0;
   const avgRes = 0; // research_score not available in list view
   const moduleScores = [
-    { label: "EDUCATION", score: avgEdu || 92, color: "bg-indigo-600" },
-    { label: "RESEARCH", score: avgRes || 78, color: "bg-cyan-500" },
-    { label: "EXPERIENCE", score: avgExp || 84, color: "bg-indigo-500" },
-    { label: "SKILLS", score: 85, color: "bg-blue-500" },
+    { label: "EDUCATION", score: avgEdu, color: "bg-indigo-600" },
+    { label: "RESEARCH", score: avgRes, color: "bg-cyan-500" },
+    { label: "EXPERIENCE", score: avgExp, color: "bg-indigo-500" },
+    { label: "SKILLS", score: 0, color: "bg-blue-500" },
   ];
 
   // Pipeline counts
-  const uploading = candidates.length;
-  const parsing = candidates.filter(
+  const uploading = filteredCandidates.length;
+  const parsing = filteredCandidates.filter(
     (c) => c.processing_status !== "pending",
   ).length;
   const analyzing =
     done.length +
-    candidates.filter((c) => c.processing_status === "failed").length;
+    filteredCandidates.filter((c) => c.processing_status === "failed").length;
   const scored = done.length;
-  const ready = highMatch.length;
 
   // Status badge colors
   const statusStyle = (status: string) => {
@@ -244,31 +252,33 @@ export default function DashboardPage() {
             {[
               {
                 label: "TOTAL CANDIDATES",
-                value: stats?.total_candidates ?? candidates.length,
-                badge: "+12%",
-                badgeColor: "text-emerald-600 bg-emerald-50",
+                value: timeFilter === "all"
+                  ? (stats?.total_candidates ?? candidates.length)
+                  : filteredCandidates.length,
+                badge: null,
+                badgeColor: "",
               },
               {
                 label: "AVERAGE SCORE",
-                value: avgScore || "74.2",
+                value: avgScore || 0,
                 badge: "Stable",
                 badgeColor: "text-indigo-600 bg-indigo-50",
               },
               {
                 label: "HIGH MATCH (>80)",
-                value: highMatch.length || 312,
-                badge: "+5%",
-                badgeColor: "text-emerald-600 bg-emerald-50",
+                value: highMatch.length,
+                badge: null,
+                badgeColor: "",
               },
               {
                 label: "PENDING REVIEW",
-                value: pending.length || 45,
-                badge: "Urgent",
+                value: pending.length,
+                badge: pending.length > 0 ? "Urgent" : null,
                 badgeColor: "text-red-600 bg-red-50",
               },
               {
                 label: "EMAILS DRAFTED",
-                value: 89,
+                value: 0,
                 badge: null,
                 badgeColor: "",
               },
@@ -460,7 +470,7 @@ export default function DashboardPage() {
                 Recent Activity
               </h2>
               <div className="space-y-3">
-                {candidates.slice(0, 4).length === 0
+                {filteredCandidates.slice(0, 4).length === 0
                   ? [
                       {
                         dot: "bg-indigo-500",
@@ -495,7 +505,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     ))
-                  : candidates.slice(0, 4).map((c) => (
+                  : filteredCandidates.slice(0, 4).map((c) => (
                       <div key={c.id} className="flex items-start gap-3">
                         <span
                           className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
@@ -544,30 +554,17 @@ export default function DashboardPage() {
                 { label: "Parse", count: parsing, unit: "files" },
                 { label: "Analyze", count: analyzing, unit: "files" },
                 { label: "Score", count: scored, unit: "files" },
-                { label: "Ready", count: ready, unit: "items", pending: true },
               ].map((step, i) => (
                 <div
                   key={step.label}
                   className="flex flex-col items-center z-10"
                 >
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shadow-md ${
-                      step.pending ? "bg-gray-200" : "bg-indigo-600"
-                    }`}
+                    className="w-8 h-8 rounded-full flex items-center justify-center shadow-md bg-indigo-600"
                   >
-                    {!step.pending && (
-                      <span className="material-symbols-outlined text-white text-sm">
-                        {
-                          [
-                            "upload",
-                            "description",
-                            "analytics",
-                            "grade",
-                            "check",
-                          ][i]
-                        }
-                      </span>
-                    )}
+                    <span className="material-symbols-outlined text-white text-sm">
+                      {["upload", "description", "analytics", "grade"][i]}
+                    </span>
                   </div>
                   <span className="mt-2 text-xs font-semibold text-gray-700">
                     {step.label}

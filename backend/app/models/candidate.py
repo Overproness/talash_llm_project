@@ -301,6 +301,7 @@ class CandidateListItem(BaseModel):
     publications_count: int
     missing_fields_count: int
     edu_level: Optional[str] = None
+    has_email_draft: bool = False
 
 
 class UploadResponse(BaseModel):

@@ -5,8 +5,8 @@ import TopBar from "@/components/ui/TopBar";
 import { api } from "@/lib/api";
 import { CandidateListItem } from "@/lib/types";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const STATUS_COLORS: Record<string, string> = {
   done: "bg-emerald-100 text-emerald-700",

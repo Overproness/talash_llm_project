@@ -183,6 +183,10 @@ async def get_dashboard_stats(
             "missing_count": {"$size": "$missing_fields"},
         }},
     ]
+    pipeline_drafted = [
+        {"$match": {"email_draft": {"$exists": True, "$ne": None}}},
+        {"$count": "total"},
+    ]
 
     total_result = await db.candidates.aggregate(pipeline_total).to_list(1)
     total = total_result[0]["total"] if total_result else 0
@@ -220,6 +224,9 @@ async def get_dashboard_stats(
             "missing_count": doc.get("missing_count", 0),
         })
 
+    drafted_result = await db.candidates.aggregate(pipeline_drafted).to_list(1)
+    drafted_count = drafted_result[0]["total"] if drafted_result else 0
+
     return {
         "total_candidates": total,
         "status_distribution": status_dist,
@@ -228,6 +235,7 @@ async def get_dashboard_stats(
         "top_skills": top_skills,
         "score_data": score_data,
         "missing_info_candidates": missing_info,
+        "drafted_emails_count": drafted_count,
     }
 
 

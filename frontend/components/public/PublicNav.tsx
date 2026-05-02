@@ -72,4 +72,3 @@ export default function PublicNav({ minimal = false }: PublicNavProps) {
     </nav>
   );
 }
-

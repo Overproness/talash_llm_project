@@ -289,7 +289,9 @@ export default function UploadPage() {
               </div>
               <div className="text-3xl font-bold">{files.length}</div>
               <div className="mt-2 text-[10px] text-on-surface-variant">
-                {files.length === 1 ? "1 file in queue" : `${files.length} files in queue`}
+                {files.length === 1
+                  ? "1 file in queue"
+                  : `${files.length} files in queue`}
               </div>
             </div>
 
@@ -439,7 +441,9 @@ export default function UploadPage() {
                     />
                     <span
                       className={`text-[10px] font-bold uppercase tracking-widest ${
-                        folderMonitorActive ? "text-emerald-700" : "text-gray-500"
+                        folderMonitorActive
+                          ? "text-emerald-700"
+                          : "text-gray-500"
                       }`}
                     >
                       {folderMonitorActive ? "Active" : "Inactive"}
@@ -640,73 +644,73 @@ export default function UploadPage() {
                     </p>
                   ) : (
                     activityHistory.slice(0, 5).map((item, idx) => (
-                    <div
-                      key={`${item.name}-${idx}`}
-                      className={`relative pl-6 border-l-2 ${
-                        item.status === "processing"
-                          ? "border-tertiary/20"
-                          : item.status === "completed"
-                            ? "border-emerald-500/20"
-                            : "border-error/20"
-                      }`}
-                    >
                       <div
-                        className={`absolute -left-[5px] top-0 w-2 h-2 rounded-full ${
+                        key={`${item.name}-${idx}`}
+                        className={`relative pl-6 border-l-2 ${
                           item.status === "processing"
-                            ? "bg-tertiary"
+                            ? "border-tertiary/20"
                             : item.status === "completed"
-                              ? "bg-emerald-500"
-                              : "bg-error"
+                              ? "border-emerald-500/20"
+                              : "border-error/20"
                         }`}
-                      />
-                      <div className="flex justify-between items-start mb-1">
-                        <div>
-                          <div className="text-sm font-semibold mb-0.5">
-                            {item.name}
-                          </div>
-                          <div className="text-[10px] text-on-surface-variant">
-                            {item.time} • {item.size}
-                          </div>
-                        </div>
-                        <span
-                          className={`px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest rounded-full shrink-0 ml-2 ${
+                      >
+                        <div
+                          className={`absolute -left-[5px] top-0 w-2 h-2 rounded-full ${
                             item.status === "processing"
-                              ? "bg-tertiary-fixed text-on-tertiary-fixed"
+                              ? "bg-tertiary"
                               : item.status === "completed"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-error-container text-on-error-container"
+                                ? "bg-emerald-500"
+                                : "bg-error"
                           }`}
-                        >
-                          {item.status}
-                        </span>
-                      </div>
-
-                      {item.status === "processing" && (
-                        <div className="h-1 bg-surface-container-low rounded-full overflow-hidden mt-2">
-                          <div className="h-full bg-tertiary w-1/2" />
-                        </div>
-                      )}
-
-                      {item.score !== undefined && (
-                        <div className="mt-3 p-3 bg-surface-container-low rounded-xl flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] text-white font-bold">
-                              {item.score}
+                        />
+                        <div className="flex justify-between items-start mb-1">
+                          <div>
+                            <div className="text-sm font-semibold mb-0.5">
+                              {item.name}
                             </div>
-                            <div className="text-[10px] font-medium text-on-surface-variant uppercase tracking-tighter">
-                              AI Talent Match Score
+                            <div className="text-[10px] text-on-surface-variant">
+                              {item.time} • {item.size}
                             </div>
                           </div>
+                          <span
+                            className={`px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest rounded-full shrink-0 ml-2 ${
+                              item.status === "processing"
+                                ? "bg-tertiary-fixed text-on-tertiary-fixed"
+                                : item.status === "completed"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-error-container text-on-error-container"
+                            }`}
+                          >
+                            {item.status}
+                          </span>
                         </div>
-                      )}
 
-                      {item.error && (
-                        <div className="mt-2 text-[10px] text-error font-medium italic">
-                          Error: {item.error}
-                        </div>
-                      )}
-                    </div>
-                  ))
+                        {item.status === "processing" && (
+                          <div className="h-1 bg-surface-container-low rounded-full overflow-hidden mt-2">
+                            <div className="h-full bg-tertiary w-1/2" />
+                          </div>
+                        )}
+
+                        {item.score !== undefined && (
+                          <div className="mt-3 p-3 bg-surface-container-low rounded-xl flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-[10px] text-white font-bold">
+                                {item.score}
+                              </div>
+                              <div className="text-[10px] font-medium text-on-surface-variant uppercase tracking-tighter">
+                                AI Talent Match Score
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {item.error && (
+                          <div className="mt-2 text-[10px] text-error font-medium italic">
+                            Error: {item.error}
+                          </div>
+                        )}
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
@@ -736,14 +740,23 @@ export default function UploadPage() {
             </div>
             <div className="px-6 py-4 max-h-80 overflow-y-auto space-y-3">
               {files.filter((f) => f.status === "error").length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-6">No errors to display.</p>
+                <p className="text-sm text-gray-500 text-center py-6">
+                  No errors to display.
+                </p>
               ) : (
                 files
                   .filter((f) => f.status === "error")
                   .map((f) => (
-                    <div key={f.file.name} className="p-3 bg-red-50 rounded-xl border border-red-100">
-                      <p className="text-sm font-semibold text-gray-800">{f.file.name}</p>
-                      <p className="text-xs text-red-600 mt-1">{f.message || "Unknown error"}</p>
+                    <div
+                      key={f.file.name}
+                      className="p-3 bg-red-50 rounded-xl border border-red-100"
+                    >
+                      <p className="text-sm font-semibold text-gray-800">
+                        {f.file.name}
+                      </p>
+                      <p className="text-xs text-red-600 mt-1">
+                        {f.message || "Unknown error"}
+                      </p>
                     </div>
                   ))
               )}

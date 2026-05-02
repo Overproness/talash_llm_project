@@ -14,6 +14,7 @@ from app.api.routes import upload, candidates, health, settings as settings_rout
 from app.api.routes import analysis
 from app.api.routes import admin as admin_routes
 from app.api.routes import auth as auth_routes
+from app.api.routes import dashboard as dashboard_routes
 from app.services.data_refresher import run_due_scrapers, run_monthly_scrapers, run_quarterly_scrapers
 from app.services.folder_watcher import FolderWatcher
 
@@ -198,6 +199,7 @@ app.include_router(analysis.router, prefix=PREFIX, tags=["analysis"])
 app.include_router(candidates.router, prefix=PREFIX, tags=["candidates"])
 app.include_router(settings_routes.router, prefix=PREFIX, tags=["settings"])
 app.include_router(admin_routes.router, prefix=PREFIX, tags=["admin"])
+app.include_router(dashboard_routes.router, prefix=PREFIX, tags=["dashboard"])
 
 
 @app.get("/")

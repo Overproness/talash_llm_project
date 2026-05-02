@@ -3,6 +3,7 @@
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 
 export default function TopBar({
   title,
@@ -36,20 +37,33 @@ export default function TopBar({
       <div className="flex items-center gap-4 flex-1">
         {breadcrumb ? (
           <nav className="flex items-center gap-2 text-[11px] font-medium text-on-surface-variant uppercase tracking-widest">
-            {breadcrumb.map((crumb, i) => (
-              <span key={i} className="flex items-center gap-2">
-                {i > 0 && (
-                  <span className="material-symbols-outlined text-[12px]">
-                    chevron_right
-                  </span>
-                )}
-                <span
-                  className={i === breadcrumb.length - 1 ? "text-primary" : ""}
-                >
-                  {crumb}
+            {breadcrumb.map((crumb, i) => {
+              const path =
+                i === 0 ? "/" : `/${crumb.toLowerCase().replace(/\s+/g, "-")}`;
+
+              const isLast = i === breadcrumb.length - 1;
+              
+              return (
+                <span key={i} className="flex items-center gap-2">
+                  {i > 0 && (
+                    <span className="material-symbols-outlined text-[12px]">
+                      chevron_right
+                    </span>
+                  )}
+
+                  {isLast ? (
+                    <span className="text-primary cursor-default">{crumb}</span>
+                  ) : (
+                    <Link
+                      href={path}
+                      className="hover:text-primary transition-colors"
+                    >
+                      {crumb}
+                    </Link>
+                  )}
                 </span>
-              </span>
-            ))}
+              );
+            })}
           </nav>
         ) : (
           <div className="relative w-full max-w-md group">
@@ -86,9 +100,7 @@ export default function TopBar({
       {/* Right: actions */}
       <div className="flex items-center gap-6">
         {action}
-        <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-all">
-          <span className="material-symbols-outlined">help</span>
-        </button>
+
         <div className="flex items-center gap-3 ml-2 border-l pl-6 border-outline-variant/30">
           <div className="text-right">
             <div className="text-xs font-semibold text-on-surface">

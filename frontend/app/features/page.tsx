@@ -115,9 +115,7 @@ export default function FeaturesPage() {
               publication counts to understand true academic influence, citation
               velocity, and collaborative network strength.
             </p>
-            <button className="self-start mt-4 bg-primary-fixed text-on-primary-fixed px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-primary-fixed-dim transition-colors">
-              View Methodology
-            </button>
+
           </div>
         </section>
 

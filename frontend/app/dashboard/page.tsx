@@ -239,7 +239,7 @@ export default function DashboardPage() {
                 Real-time recruitment intelligence and talent health metrics.
               </p>
             </div>
-            <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-100">
+            {/* <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm border border-gray-100">
               {(["7d", "30d", "all"] as const).map((f) => (
                 <button
                   key={f}
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                   {f === "7d" ? "Last 7 days" : f === "30d" ? "30 days" : "All"}
                 </button>
               ))}
-            </div>
+            </div> */}
           </div>
 
           {/* Stats row */}

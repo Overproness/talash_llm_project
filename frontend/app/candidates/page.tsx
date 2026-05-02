@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { CandidateListItem } from "@/lib/types";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 const STATUS_COLORS: Record<string, string> = {
   done: "bg-emerald-100 text-emerald-700",
@@ -15,7 +15,7 @@ const STATUS_COLORS: Record<string, string> = {
   failed: "bg-error-container text-on-error-container",
 };
 
-export default function CandidatesPage() {
+function CandidatesContent() {
   const [candidates, setCandidates] = useState<CandidateListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
@@ -215,5 +215,13 @@ export default function CandidatesPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function CandidatesPage() {
+  return (
+    <Suspense>
+      <CandidatesContent />
+    </Suspense>
   );
 }

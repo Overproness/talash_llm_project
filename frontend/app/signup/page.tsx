@@ -231,7 +231,7 @@ export default function SignupPage() {
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-outline">
-                      lock_check
+                      lock
                     </span>
                   </div>
                   <input

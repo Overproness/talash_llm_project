@@ -32,7 +32,7 @@ export default function PublicHomePage() {
                   href="/contact"
                   className="inline-flex justify-center items-center bg-gradient-to-br from-primary to-primary-container text-on-primary px-8 py-4 rounded-lg font-headline font-semibold text-sm shadow-[0_8px_32px_rgba(70,72,212,0.2)] hover:shadow-[0_8px_32px_rgba(70,72,212,0.3)] transition-all"
                 >
-                  Request a Demo
+                  Contact Us
                 </Link>
                 <Link
                   href="/features"
@@ -226,7 +226,6 @@ export default function PublicHomePage() {
         id="resources"
         className="py-24 bg-surface-container-low relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-surface"></div>
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="grid md:grid-cols-12 gap-12 items-center">
             <div className="md:col-span-5 relative">
@@ -287,7 +286,7 @@ export default function PublicHomePage() {
             href="/contact"
             className="inline-flex justify-center items-center bg-gradient-to-br from-primary to-primary-container text-on-primary px-10 py-4 rounded-lg font-headline font-semibold shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5"
           >
-            Request a Demo
+            Contact Us
           </Link>
         </div>
       </section>

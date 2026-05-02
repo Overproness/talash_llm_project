@@ -1,10 +1,10 @@
 "use client";
 
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { api } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -34,7 +34,12 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      const tokenData = await api.signup(fullName, email, password, confirmPassword);
+      const tokenData = await api.signup(
+        fullName,
+        email,
+        password,
+        confirmPassword,
+      );
       const userData = await api.getMe(tokenData.access_token);
       login(tokenData.access_token, userData);
       router.push("/dashboard");
@@ -95,8 +100,8 @@ export default function SignupPage() {
                     Start recruiting smarter.
                   </h2>
                   <p className="text-sm text-on-surface-variant max-w-sm">
-                    Create your account and gain instant access to AI-powered
-                    CV analysis and intelligent candidate ranking.
+                    Create your account and gain instant access to AI-powered CV
+                    analysis and intelligent candidate ranking.
                   </p>
                 </div>
               </div>

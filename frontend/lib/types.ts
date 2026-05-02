@@ -264,6 +264,7 @@ export interface CandidateListItem {
   publications_count: number
   missing_fields_count: number
   edu_level: string | null
+  has_email_draft: boolean
 }
 
 export interface CandidateFull {
@@ -316,6 +317,7 @@ export interface DashboardStats {
     research_score: number | null
   }>
   missing_info_candidates: Array<{ name: string; missing_count: number }>
+  drafted_emails_count: number
 }
 
 export interface RankedCandidate {

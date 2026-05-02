@@ -1,10 +1,10 @@
 "use client";
 
+import { api } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
-import { api } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
 
 function LoginForm() {
   const router = useRouter();
@@ -228,4 +228,3 @@ export default function LoginPage() {
     </Suspense>
   );
 }
-

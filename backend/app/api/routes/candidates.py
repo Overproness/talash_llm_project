@@ -44,6 +44,7 @@ def _doc_to_list_item(doc: dict) -> CandidateListItem:
         publications_count=len(doc.get("publications", [])),
         missing_fields_count=len(doc.get("missing_fields", [])),
         edu_level=edu_level,
+        has_email_draft=bool(doc.get("email_draft")),
     )
 
 

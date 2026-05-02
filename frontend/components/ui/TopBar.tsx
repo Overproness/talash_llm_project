@@ -60,7 +60,9 @@ export default function TopBar({
               className="w-full bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
               placeholder="Search candidates..."
               type="text"
-              value={onSearchChange !== undefined ? (searchValue ?? "") : localSearch}
+              value={
+                onSearchChange !== undefined ? (searchValue ?? "") : localSearch
+              }
               onChange={(e) => {
                 const val = e.target.value;
                 if (onSearchChange) {
@@ -72,7 +74,8 @@ export default function TopBar({
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !onSearchChange) {
                   const q = localSearch.trim();
-                  if (q) router.push(`/candidates?search=${encodeURIComponent(q)}`);
+                  if (q)
+                    router.push(`/candidates?search=${encodeURIComponent(q)}`);
                 }
               }}
             />
@@ -103,11 +106,12 @@ export default function TopBar({
             title="Sign out"
             className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition-all"
           >
-            <span className="material-symbols-outlined text-[18px]">logout</span>
+            <span className="material-symbols-outlined text-[18px]">
+              logout
+            </span>
           </button>
         </div>
       </div>
     </header>
   );
 }
-

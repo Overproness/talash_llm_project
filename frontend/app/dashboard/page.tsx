@@ -76,6 +76,7 @@ function DonutChart({
 
 export default function DashboardPage() {
   const [candidates, setCandidates] = useState<CandidateListItem[]>([]);
+  console.log("🚀 ~ DashboardPage ~ candidates:", candidates);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [systemStatus, setSystemStatus] = useState<{
     status: string;
@@ -99,10 +100,7 @@ export default function DashboardPage() {
   });
 
   const done = filteredCandidates.filter((c) => c.processing_status === "done");
-  const pending = filteredCandidates.filter(
-    (c) =>
-      c.processing_status === "pending" || c.processing_status === "processing",
-  );
+  const emailsDrafted = stats?.drafted_emails_count ?? candidates.filter((c) => c.has_email_draft).length;
   const totalPubs = done.reduce((s, c) => s + c.publications_count, 0);
   const highMatch = done.filter((c) => (c.overall_score ?? 0) >= 80);
   const avgScore =
@@ -180,12 +178,23 @@ export default function DashboardPage() {
           done.reduce((s, c) => s + (c.experience_score ?? 0), 0) / done.length,
         )
       : 0;
-  const avgRes = 0; // research_score not available in list view
+  // Research score comes from stats.score_data (not available on list items)
+  const scoreDataWithResearch = (stats?.score_data ?? []).filter(
+    (d) => d.research_score !== null && d.research_score !== undefined,
+  );
+  const avgRes =
+    scoreDataWithResearch.length > 0
+      ? Math.round(
+          scoreDataWithResearch.reduce(
+            (s, d) => s + (d.research_score ?? 0),
+            0,
+          ) / scoreDataWithResearch.length,
+        )
+      : 0;
   const moduleScores = [
     { label: "EDUCATION", score: avgEdu, color: "bg-indigo-600" },
     { label: "RESEARCH", score: avgRes, color: "bg-cyan-500" },
     { label: "EXPERIENCE", score: avgExp, color: "bg-indigo-500" },
-    { label: "SKILLS", score: 0, color: "bg-blue-500" },
   ];
 
   // Pipeline counts
@@ -248,13 +257,14 @@ export default function DashboardPage() {
           </div>
 
           {/* Stats row */}
-          <div className="grid grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-4 gap-4 mb-6">
             {[
               {
                 label: "TOTAL CANDIDATES",
-                value: timeFilter === "all"
-                  ? (stats?.total_candidates ?? candidates.length)
-                  : filteredCandidates.length,
+                value:
+                  timeFilter === "all"
+                    ? (stats?.total_candidates ?? candidates.length)
+                    : filteredCandidates.length,
                 badge: null,
                 badgeColor: "",
               },
@@ -271,14 +281,8 @@ export default function DashboardPage() {
                 badgeColor: "",
               },
               {
-                label: "PENDING REVIEW",
-                value: pending.length,
-                badge: pending.length > 0 ? "Urgent" : null,
-                badgeColor: "text-red-600 bg-red-50",
-              },
-              {
                 label: "EMAILS DRAFTED",
-                value: 0,
+                value: emailsDrafted,
                 badge: null,
                 badgeColor: "",
               },
@@ -547,7 +551,15 @@ export default function DashboardPage() {
               <div className="absolute top-4 left-12 right-12 h-0.5 bg-gray-200 z-0" />
               <div
                 className="absolute top-4 left-12 h-0.5 bg-indigo-500 z-0 transition-all duration-700"
-                style={{ width: "75%" }}
+                style={(() => {
+                  const fraction = uploading > 0 ? scored / uploading : 0;
+                  return {
+                    width:
+                      fraction > 0
+                        ? `calc(${fraction * 100}% - ${fraction * 96}px)`
+                        : "0px",
+                  };
+                })()}
               />
               {[
                 { label: "Upload", count: uploading, unit: "files" },
@@ -559,9 +571,7 @@ export default function DashboardPage() {
                   key={step.label}
                   className="flex flex-col items-center z-10"
                 >
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center shadow-md bg-indigo-600"
-                  >
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center shadow-md bg-indigo-600">
                     <span className="material-symbols-outlined text-white text-sm">
                       {["upload", "description", "analytics", "grade"][i]}
                     </span>

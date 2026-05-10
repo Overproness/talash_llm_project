@@ -17,14 +17,15 @@ logger = logging.getLogger(__name__)
 class CVUploadHandler(FileSystemEventHandler):
     """Watchdog handler that queues new PDF files for processing."""
 
-    def __init__(self, processing_queue: asyncio.Queue):
+    def __init__(self, processing_queue: asyncio.Queue, loop: asyncio.AbstractEventLoop):
         self.queue = processing_queue
+        self.loop = loop
 
     def on_created(self, event: FileCreatedEvent):
         if not event.is_directory and event.src_path.lower().endswith(".pdf"):
             logger.info(f"New CV detected: {event.src_path}")
-            # Schedule processing on the event loop
-            asyncio.get_event_loop().call_soon_threadsafe(
+            # Schedule processing on the captured main event loop (safe from any thread)
+            self.loop.call_soon_threadsafe(
                 self.queue.put_nowait, event.src_path
             )
 
@@ -36,11 +37,12 @@ class FolderWatcher:
         self.watch_dir = watch_dir
         self.queue = processing_queue
         self._observer = Observer()
-        self._handler = CVUploadHandler(processing_queue)
 
     def start(self):
+        loop = asyncio.get_event_loop()
+        handler = CVUploadHandler(self.queue, loop)
         os.makedirs(self.watch_dir, exist_ok=True)
-        self._observer.schedule(self._handler, self.watch_dir, recursive=False)
+        self._observer.schedule(handler, self.watch_dir, recursive=False)
         self._observer.start()
         logger.info(f"Watching {self.watch_dir} for new CVs")
 

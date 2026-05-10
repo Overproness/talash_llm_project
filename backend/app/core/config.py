@@ -44,7 +44,7 @@ class Settings(BaseSettings):
 
     # Large CV threshold — CVs whose extracted text exceeds this character count
     # are routed to the more capable "large" model to reduce hallucinations.
-    large_cv_threshold_chars: int = 8000
+    large_cv_threshold_chars: int = 4000
 
     # ── Storage ───────────────────────────────────────────────────────────────
     cv_upload_dir: str = "data/cv_uploads"

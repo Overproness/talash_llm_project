@@ -50,7 +50,12 @@ export default function UploadPage() {
   const [showErrorLog, setShowErrorLog] = useState(false);
 
   // DB-backed global counters (fetched on mount and refreshed after each upload)
-  const [dbStats, setDbStats] = useState({ total: 0, processing: 0, completed: 0, failed: 0 });
+  const [dbStats, setDbStats] = useState({
+    total: 0,
+    processing: 0,
+    completed: 0,
+    failed: 0,
+  });
 
   const refreshDbStats = useCallback(async () => {
     try {
@@ -372,7 +377,9 @@ export default function UploadPage() {
                   Failed
                 </span>
               </div>
-              <div className="text-3xl font-bold text-error">{dbStats.failed}</div>
+              <div className="text-3xl font-bold text-error">
+                {dbStats.failed}
+              </div>
               <div
                 className="mt-2 text-[10px] text-error font-medium underline cursor-pointer"
                 onClick={() => setShowErrorLog(true)}

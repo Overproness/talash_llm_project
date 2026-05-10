@@ -1,12 +1,22 @@
 {
-    "buildCommand": "cd frontend && npm run build",
-    "outputDirectory": "frontend/.next",
-    "installCommand": "cd frontend && npm install",
-    "framework": "nextjs",
     "rewrites": [
         {
             "source": "/api/:path*",
             "destination": "http://localhost:5100/api/:path*"
         }
-    ]
+    ],
+    "experimentalServices": {
+        "frontend": {
+            "installCommand": "cd frontend && npm install",
+            "outputDirectory": "frontend/.next",
+            "buildCommand": "cd frontend && npm run build",
+            "entrypoint": "frontend",
+            "routePrefix": "/",
+            "framework": "nextjs"
+        },
+        "backend": {
+            "entrypoint": "backend",
+            "routePrefix": "/api"
+        }
+    }
 }

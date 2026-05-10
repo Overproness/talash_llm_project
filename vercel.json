@@ -4,14 +4,5 @@
             "source": "/api/:path*",
             "destination": "https://talash-llm-project.onrender.com/api/:path*"
         }
-    ],
-    "experimentalServices": {
-        "frontend": {
-            "installCommand": "npm install",
-            "buildCommand": "npm run build",
-            "entrypoint": "frontend",
-            "routePrefix": "/",
-            "framework": "nextjs"
-        }
-    }
+    ]
 }

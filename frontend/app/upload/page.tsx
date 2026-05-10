@@ -4,7 +4,7 @@ import Sidebar from "@/components/ui/Sidebar";
 import TopBar from "@/components/ui/TopBar";
 import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type UploadStatus = "idle" | "uploading" | "parsing" | "done" | "error";
 
@@ -48,6 +48,22 @@ export default function UploadPage() {
   );
   const [folderMonitorActive, setFolderMonitorActive] = useState(true);
   const [showErrorLog, setShowErrorLog] = useState(false);
+
+  // DB-backed global counters (fetched on mount and refreshed after each upload)
+  const [dbStats, setDbStats] = useState({ total: 0, processing: 0, completed: 0, failed: 0 });
+
+  const refreshDbStats = useCallback(async () => {
+    try {
+      const stats = await api.getUploadStats();
+      setDbStats(stats);
+    } catch {
+      // non-critical — silently ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshDbStats();
+  }, [refreshDbStats]);
 
   const addFiles = useCallback((incoming: FileList | null) => {
     if (!incoming) return;
@@ -96,6 +112,7 @@ export default function UploadPage() {
       ]);
       try {
         const res = await api.uploadCV(item.file);
+        refreshDbStats();
         setFiles((prev) =>
           prev.map((f) =>
             f.file.name === item.file.name
@@ -156,6 +173,7 @@ export default function UploadPage() {
                 },
                 ...prev,
               ]);
+              refreshDbStats();
             } else if (status === "failed") {
               const error = candidate.processing_error ?? "Processing failed.";
               setFiles((prev) =>
@@ -175,6 +193,7 @@ export default function UploadPage() {
                 },
                 ...prev,
               ]);
+              refreshDbStats();
             } else {
               setTimeout(poll, 1000);
             }
@@ -241,12 +260,6 @@ export default function UploadPage() {
     return map[s];
   };
 
-  const processingCount = files.filter(
-    (f) => f.status === "uploading" || f.status === "parsing",
-  ).length;
-  const completedCount = files.filter((f) => f.status === "done").length;
-  const failedCount = files.filter((f) => f.status === "error").length;
-
   return (
     <div className="flex min-h-screen bg-surface">
       <Sidebar />
@@ -287,11 +300,11 @@ export default function UploadPage() {
                   Total Uploaded
                 </span>
               </div>
-              <div className="text-3xl font-bold">{files.length}</div>
+              <div className="text-3xl font-bold">{dbStats.total}</div>
               <div className="mt-2 text-[10px] text-on-surface-variant">
-                {files.length === 1
-                  ? "1 file in queue"
-                  : `${files.length} files in queue`}
+                {dbStats.total === 1
+                  ? "1 CV in database"
+                  : `${dbStats.total} CVs in database`}
               </div>
             </div>
 
@@ -308,7 +321,7 @@ export default function UploadPage() {
                 </span>
               </div>
               <div className="text-3xl font-bold text-tertiary">
-                {processingCount}
+                {dbStats.processing}
               </div>
               <div className="mt-2 flex items-center gap-1">
                 <div className="h-1 w-16 bg-surface-container rounded-full overflow-hidden">
@@ -316,8 +329,8 @@ export default function UploadPage() {
                     className="h-full bg-tertiary transition-all"
                     style={{
                       width:
-                        files.length > 0
-                          ? `${(processingCount / files.length) * 100}%`
+                        dbStats.total > 0
+                          ? `${(dbStats.processing / dbStats.total) * 100}%`
                           : "0%",
                     }}
                   />
@@ -338,11 +351,11 @@ export default function UploadPage() {
                 </span>
               </div>
               <div className="text-3xl font-bold text-emerald-600">
-                {completedCount}
+                {dbStats.completed}
               </div>
               <div className="mt-2 text-[10px] text-emerald-600 font-medium">
-                {files.length > 0
-                  ? `${Math.round((completedCount / files.length) * 100)}% Efficiency Rate`
+                {dbStats.total > 0
+                  ? `${Math.round((dbStats.completed / dbStats.total) * 100)}% Efficiency Rate`
                   : "No files processed yet"}
               </div>
             </div>
@@ -359,7 +372,7 @@ export default function UploadPage() {
                   Failed
                 </span>
               </div>
-              <div className="text-3xl font-bold text-error">{failedCount}</div>
+              <div className="text-3xl font-bold text-error">{dbStats.failed}</div>
               <div
                 className="mt-2 text-[10px] text-error font-medium underline cursor-pointer"
                 onClick={() => setShowErrorLog(true)}

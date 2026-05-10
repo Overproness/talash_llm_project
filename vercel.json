@@ -7,8 +7,8 @@
     ],
     "experimentalServices": {
         "frontend": {
-            "installCommand": "cd frontend && npm install",
-            "buildCommand": "cd frontend && npm run build",
+            "installCommand": "npm install",
+            "buildCommand": "npm run build",
             "entrypoint": "frontend",
             "routePrefix": "/",
             "framework": "nextjs"

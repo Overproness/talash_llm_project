@@ -141,3 +141,29 @@ async def upload_cv(
         status="processing",
         message="CV uploaded successfully. Analysis is running in the background.",
     )
+
+
+@router.get("/upload/stats")
+async def get_upload_stats(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """Return aggregate upload counters sourced from the candidates collection."""
+    pipeline = [
+        {
+            "$group": {
+                "_id": "$processing_status",
+                "count": {"$sum": 1},
+            }
+        }
+    ]
+    rows = await db.candidates.aggregate(pipeline).to_list(length=None)
+    counts = {row["_id"]: row["count"] for row in rows}
+
+    total = sum(counts.values())
+    return {
+        "total": total,
+        "processing": counts.get("processing", 0),
+        "completed": counts.get("done", 0),
+        "failed": counts.get("failed", 0),
+    }

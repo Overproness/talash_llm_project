@@ -109,6 +109,9 @@ export const api = {
   },
 
   // ── Candidates ──────────────────────────────────────────────────────────────
+  getUploadStats: () =>
+    request<{ total: number; processing: number; completed: number; failed: number }>('/upload/stats'),
+
   getCandidates: (skip = 0, limit = 50) =>
     request<CandidateListItem[]>(`/candidates?skip=${skip}&limit=${limit}`),
 

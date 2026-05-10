@@ -25,18 +25,26 @@ class Settings(BaseSettings):
     # Ollama (local)
     ollama_host: str = "http://localhost:11434"
     ollama_model: str = "llama3.2:3b"
+    ollama_model_large: str = "llama3.1:8b"
 
     # Google Gemini
     google_api_key: str = ""
     gemini_model: str = "gemini-2.5-flash"
+    gemini_model_large: str = "gemini-2.5-pro"
 
     # OpenAI
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
+    openai_model_large: str = "gpt-4o"
 
     # Grok / xAI  (OpenAI-compatible endpoint)
     xai_api_key: str = ""
     grok_model: str = "grok-3-mini"
+    grok_model_large: str = "grok-3"
+
+    # Large CV threshold — CVs whose extracted text exceeds this character count
+    # are routed to the more capable "large" model to reduce hallucinations.
+    large_cv_threshold_chars: int = 8000
 
     # ── Storage ───────────────────────────────────────────────────────────────
     cv_upload_dir: str = "data/cv_uploads"

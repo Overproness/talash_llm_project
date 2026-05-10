@@ -52,6 +52,25 @@ def get_active_model() -> str:
     return defaults.get(get_active_provider(), "")
 
 
+def get_active_model_large() -> str:
+    """Return the large-CV model name for the active provider.
+
+    If the user has manually overridden the model at runtime, that override
+    is respected.  Otherwise the provider-specific large model from settings
+    is returned.
+    """
+    if _runtime.model:
+        return _runtime.model
+    settings = get_settings()
+    defaults = {
+        "ollama": settings.ollama_model_large,
+        "gemini": settings.gemini_model_large,
+        "openai": settings.openai_model_large,
+        "grok":   settings.grok_model_large,
+    }
+    return defaults.get(get_active_provider(), get_active_model())
+
+
 def set_runtime_provider(provider: str, model: str = "") -> None:
     """Switch provider (and optionally model) at runtime, no restart needed."""
     _runtime.provider = provider
@@ -61,11 +80,9 @@ def set_runtime_provider(provider: str, model: str = "") -> None:
 
 # ── LLM factory ──────────────────────────────────────────────────────────────
 
-def get_llm() -> BaseChatModel:
-    """Instantiate and return a LangChain chat model for the active provider."""
+def _build_llm(provider: str, model: str) -> BaseChatModel:
+    """Internal factory: build a LangChain chat model for *provider* using *model*."""
     settings = get_settings()
-    provider = get_active_provider()
-    model = get_active_model()
 
     if provider == "ollama":
         from langchain_ollama import ChatOllama
@@ -74,7 +91,7 @@ def get_llm() -> BaseChatModel:
             model=model,
             format="json",
             temperature=0.1,
-            num_predict=4096,
+            num_predict=8192,
         )
 
     if provider == "gemini":
@@ -103,6 +120,16 @@ def get_llm() -> BaseChatModel:
         )
 
     raise ValueError(f"Unknown LLM provider: {provider!r}")
+
+
+def get_llm() -> BaseChatModel:
+    """Return a LangChain chat model using the current (standard) model."""
+    return _build_llm(get_active_provider(), get_active_model())
+
+
+def get_llm_large() -> BaseChatModel:
+    """Return a LangChain chat model using the large-CV model for the active provider."""
+    return _build_llm(get_active_provider(), get_active_model_large())
 
 
 # ── Availability check ────────────────────────────────────────────────────────
@@ -244,21 +271,46 @@ Return ONLY a valid JSON object with this exact structure (use empty strings/arr
 
 # ── Main extraction function ──────────────────────────────────────────────────
 
+# Standard CVs: up to 12 000 chars fed to the standard model.
+# Large CVs (> large_cv_threshold_chars): up to 40 000 chars fed to the large
+# model.  Cloud providers (Gemini, OpenAI, Grok) have context windows easily
+# large enough; Ollama large models (8b+) handle the increased load too.
+_STANDARD_CHAR_LIMIT = 12_000
+_LARGE_CHAR_LIMIT = 40_000
+
+
 async def extract_with_llm(cv_text: str) -> dict:
     """
     Extract structured CV data using the active LangChain provider.
-    Truncates input to 12 000 chars for context-window safety.
+
+    Routing:
+      - len(cv_text) <= large_cv_threshold_chars → standard model, 12 000-char window
+      - len(cv_text) >  large_cv_threshold_chars → large model,   40 000-char window
     Raises on JSON parse failure or network error.
     """
+    settings = get_settings()
     provider = get_active_provider()
-    llm = get_llm()
+    is_large = len(cv_text) > settings.large_cv_threshold_chars
+
+    if is_large:
+        llm = get_llm_large()
+        active_model = get_active_model_large()
+        char_limit = _LARGE_CHAR_LIMIT
+    else:
+        llm = get_llm()
+        active_model = get_active_model()
+        char_limit = _STANDARD_CHAR_LIMIT
+
+    logger.info(
+        "Extracting CV with provider=%s model=%s (cv_len=%d, large=%s)",
+        provider, active_model, len(cv_text), is_large,
+    )
 
     messages = [
         SystemMessage(content=_SYSTEM),
-        HumanMessage(content=_EXTRACTION_PROMPT.format(cv_text=cv_text[:12000])),
+        HumanMessage(content=_EXTRACTION_PROMPT.format(cv_text=cv_text[:char_limit])),
     ]
 
-    logger.info("Extracting CV with provider=%s model=%s", provider, get_active_model())
     response = await llm.ainvoke(messages)
     raw: str = response.content
 

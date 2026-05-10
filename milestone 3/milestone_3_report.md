@@ -15,25 +15,25 @@
 
 ## Rubric Achievement Summary
 
-| Criterion                                                         | Marks Available | Status      |
-| ----------------------------------------------------------------- | :-------------: | :---------: |
-| Completion of functional modules + demo                           | 30              | ✅ Full     |
-| Candidate assessment report and summary generation                | 8               | ✅ Full     |
-| Web application integration, reliability, UI/UX, intuitivity      | 12              | ✅ Full     |
-| **Extra Credit — Tabular & Graphical Presentation**               | 6               | ✅ Done     |
-| **Extra Credit — Candidate Ranking Module**                       | 8               | ✅ Done     |
-| **Total**                                                         | **50**          | **✅ Complete** |
+| Criterion                                                    | Marks Available |     Status      |
+| ------------------------------------------------------------ | :-------------: | :-------------: |
+| Completion of functional modules + demo                      |       30        |     ✅ Full     |
+| Candidate assessment report and summary generation           |        8        |     ✅ Full     |
+| Web application integration, reliability, UI/UX, intuitivity |       12        |     ✅ Full     |
+| **Extra Credit — Tabular & Graphical Presentation**          |        6        |     ✅ Done     |
+| **Extra Credit — Candidate Ranking Module**                  |        8        |     ✅ Done     |
+| **Total**                                                    |     **50**      | **✅ Complete** |
 
 ### Functional Modules Breakdown (30 Marks)
 
-| Sub-Criterion                                             | Marks | Status  |
-| --------------------------------------------------------- | :---: | :-----: |
-| Educational Profile Analysis                              | 6     | ✅ Full |
-| Research Profile Analysis: journals and conferences       | 7     | ✅ Full |
-| Topic variability and co-author analysis                  | 6     | ✅ Full |
-| Student supervision, patents, and books                   | 5     | ✅ Full |
-| Professional experience and employment history            | 6     | ✅ Full |
-| **Total**                                                 | **30**| **✅**  |
+| Sub-Criterion                                       | Marks  | Status  |
+| --------------------------------------------------- | :----: | :-----: |
+| Educational Profile Analysis                        |   6    | ✅ Full |
+| Research Profile Analysis: journals and conferences |   7    | ✅ Full |
+| Topic variability and co-author analysis            |   6    | ✅ Full |
+| Student supervision, patents, and books             |   5    | ✅ Full |
+| Professional experience and employment history      |   6    | ✅ Full |
+| **Total**                                           | **30** | **✅**  |
 
 ---
 
@@ -80,6 +80,7 @@ The analyzer maps each education record to a canonical level (`SSE → HSSC → 
 ### 1.4 Education Score (0–100)
 
 A composite score is computed combining:
+
 - Normalized CGPA/marks at each level (weighted by level seniority)
 - Institution quality tier bonus
 - Deductions for unjustified gaps
@@ -109,7 +110,7 @@ Conference papers are matched against the **CORE ranking database** (`data/refer
 
 | CORE Rank | Points | Prestige     |
 | --------- | ------ | ------------ |
-| A*        | 100    | Premier      |
+| A\*       | 100    | Premier      |
 | A         | 80     | High-quality |
 | B         | 60     | Solid        |
 | C         | 40     | Acceptable   |
@@ -129,10 +130,11 @@ Role weights are factored into the publication's contribution score.
 ### 2.4 Research Score
 
 A composite `research_score` (0–100) is derived from:
+
 - Sum of per-paper quality scores (weighted by authorship role)
 - Normalized against an ideal high-performer benchmark
 - Penalty for zero or very few publications
-- Bonus for high-impact venues (Q1 journals, CORE A* conferences)
+- Bonus for high-impact venues (Q1 journals, CORE A\* conferences)
 
 ---
 
@@ -148,11 +150,11 @@ $$H = -\sum_{i} p_i \log_2 p_i$$
 
 Where $p_i$ is the relative frequency of topic cluster $i$. This yields:
 
-| Entropy Range | Classification  |
-| ------------- | --------------- |
-| H ≥ 2.5       | Highly diverse  |
+| Entropy Range | Classification     |
+| ------------- | ------------------ |
+| H ≥ 2.5       | Highly diverse     |
 | 1.5 ≤ H < 2.5 | Moderately diverse |
-| H < 1.5       | Focused/niche   |
+| H < 1.5       | Focused/niche      |
 
 A `topic_diversity_score` (0–100) is derived by normalizing entropy relative to a reference maximum. A focused researcher in a deep niche still scores well on a separate `depth_score` component.
 
@@ -178,10 +180,12 @@ These are combined into a `collaboration_score` reflecting breadth and depth of 
 ### 4.1 Student Supervision
 
 The LLM extracts MS and PhD student supervision records from the CV, each containing:
+
 - Student name, degree level (MS/PhD), supervisor role (main/co)
 - Thesis title, graduation year
 
 Scoring:
+
 - Each completed PhD supervision: **+8 points**
 - Each MS supervision: **+4 points**
 - Co-supervision weighted at 50%
@@ -194,6 +198,7 @@ Patent records extracted include title, number, country, inventors, and date. Ea
 ### 4.3 Books and Book Chapters
 
 Books extracted include publisher, ISBN, and co-authors. Classification:
+
 - **Sole-authored textbook** with reputable publisher (Springer, Wiley, CRC): highest weight
 - **Book chapter** in edited volume: moderate weight
 - **Self-published or unverified publisher**: low weight
@@ -221,6 +226,7 @@ The analyzer cross-references education and employment timelines to detect:
 ### 5.3 Professional Gap Detection
 
 Gaps between consecutive employment records exceeding 3 months are flagged. Each gap is checked against:
+
 - Intervening education records (studying = justified)
 - Present employment status
 - Explicit CV annotations
@@ -229,16 +235,17 @@ Gaps between consecutive employment records exceeding 3 months are flagged. Each
 
 Employment records are ordered chronologically and evaluated for:
 
-| Trajectory   | Criteria                                              |
-| ------------ | ----------------------------------------------------- |
+| Trajectory   | Criteria                                                          |
+| ------------ | ----------------------------------------------------------------- |
 | `ascending`  | Increasing seniority (Lecturer → Assistant Prof → Associate Prof) |
-| `lateral`    | Same seniority tier across organizations              |
-| `descending` | Apparent demotion in title or seniority               |
-| `mixed`      | Non-monotonic progression                             |
+| `lateral`    | Same seniority tier across organizations                          |
+| `descending` | Apparent demotion in title or seniority                           |
+| `mixed`      | Non-monotonic progression                                         |
 
 ### 5.5 Experience Score (0–100)
 
 Components:
+
 - **Total years** — scaled against a 20-year benchmark
 - **Seniority** — role tier (junior/mid/senior/principal) bonus
 - **Continuity** — penalty for unjustified gaps
@@ -254,6 +261,7 @@ Components:
 **Page:** `/candidates`
 
 A full-featured data table displays all candidates with:
+
 - Name, upload status badge (done / processing / failed)
 - Publication count, skills count, missing fields count
 - Education score, experience score, overall score with color-coded badges (green ≥ 80, amber ≥ 60, red < 60)
@@ -265,19 +273,20 @@ A full-featured data table displays all candidates with:
 
 Built with pure SVG (no external charting library) in the Next.js frontend:
 
-| Chart | Description |
-| ----- | ----------- |
-| **Donut Chart** | Publication type distribution (journal / conference / book chapter) using `strokeDasharray` SVG technique |
-| **Bar Chart** | Candidate score comparison across all uploaded CVs |
-| **Status Distribution** | Segmented pill chart showing done / processing / pending / failed candidates |
-| **Skills Frequency** | Top-10 skill tags extracted across the entire candidate pool |
-| **Score Cards** | Average education score, experience score, and research score with trend indicators |
+| Chart                   | Description                                                                                               |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Donut Chart**         | Publication type distribution (journal / conference / book chapter) using `strokeDasharray` SVG technique |
+| **Bar Chart**           | Candidate score comparison across all uploaded CVs                                                        |
+| **Status Distribution** | Segmented pill chart showing done / processing / pending / failed candidates                              |
+| **Skills Frequency**    | Top-10 skill tags extracted across the entire candidate pool                                              |
+| **Score Cards**         | Average education score, experience score, and research score with trend indicators                       |
 
 ### 6.3 Candidate Detail — Per-Candidate Tabular Output
 
 **Page:** `/candidates/[id]`
 
 Each candidate's detail page renders:
+
 - Education records as a structured table with normalized scores and institution tier
 - Publication list with quality badges (Q1/Q2/Q3/Q4, CORE rank, publisher)
 - Experience timeline with gap and overlap annotations
@@ -289,6 +298,7 @@ Each candidate's detail page renders:
 **Page:** `/compare`
 
 Up to 3 candidates can be selected and compared side-by-side with:
+
 - **Radar (spider) chart** — 4 axes: Experience, Education, Research, Technical Skills — rendered in pure SVG using polar coordinate calculation
 - **Score comparison table** — Education / Experience / Research / Overall scores per candidate
 - **Qualification cards** — highest degree, years of experience, publication count
@@ -305,13 +315,13 @@ Up to 3 candidates can be selected and compared side-by-side with:
 
 The ranking engine computes a composite `overall_score` (0–100) from four weighted components:
 
-| Component          | Weight | Source                                 |
-| ------------------ | ------ | -------------------------------------- |
-| Education Score    | 30%    | `education_analyzer.py` — normalized academic performance + institution quality |
-| Research Score     | 30%    | `research_analyzer.py` — publication quality × authorship role |
-| Experience Score   | 25%    | `experience_analyzer.py` — tenure, continuity, trajectory |
-| Skills             | 5%     | Count of extracted skills (capped at 100) |
-| Profile Completeness | 10%  | Inverse of missing fields count        |
+| Component            | Weight | Source                                                                          |
+| -------------------- | ------ | ------------------------------------------------------------------------------- |
+| Education Score      | 30%    | `education_analyzer.py` — normalized academic performance + institution quality |
+| Research Score       | 30%    | `research_analyzer.py` — publication quality × authorship role                  |
+| Experience Score     | 25%    | `experience_analyzer.py` — tenure, continuity, trajectory                       |
+| Skills               | 5%     | Count of extracted skills (capped at 100)                                       |
+| Profile Completeness | 10%    | Inverse of missing fields count                                                 |
 
 $$\text{Overall Score} = \frac{\sum w_i \cdot s_i}{\sum w_i}$$
 
@@ -324,6 +334,7 @@ GET /api/candidates/rank?limit=50&min_score=0
 ```
 
 Returns all candidates sorted descending by `overall_score`, including:
+
 - Per-component scores (education, experience, research)
 - Rank position (1-indexed)
 - Missing fields count
@@ -332,6 +343,7 @@ Returns all candidates sorted descending by `overall_score`, including:
 ### 7.3 Ranking UI
 
 The `/ranking` page displays:
+
 - **Top 3 podium** — Gold / Silver / Bronze medals with gradient styling
 - **Full ranked table** — with score breakdown bars per component
 - **Score filter slider** — filter candidates above a minimum threshold
@@ -380,12 +392,12 @@ If the LLM is unavailable, a deterministic summary is generated from analysis fi
 
 `detect_missing_info_detailed()` evaluates 20+ fields across personal info, education, experience, publications, and research output. Each missing item receives a severity classification:
 
-| Severity   | Examples                                                  |
-| ---------- | --------------------------------------------------------- |
-| `critical`  | Name or email missing                                    |
-| `high`      | CGPA/marks missing, institution name absent              |
-| `medium`    | Phone, specialization, year of completion missing        |
-| `low`       | LinkedIn URL, thesis title, patent URL absent            |
+| Severity   | Examples                                          |
+| ---------- | ------------------------------------------------- |
+| `critical` | Name or email missing                             |
+| `high`     | CGPA/marks missing, institution name absent       |
+| `medium`   | Phone, specialization, year of completion missing |
+| `low`      | LinkedIn URL, thesis title, patent URL absent     |
 
 ### 8.4 Personalized Email Drafting
 
@@ -423,39 +435,40 @@ The `/email-drafts` UI page lists all candidates with missing fields, with expan
 
 ### 9.2 API Routes
 
-| Method | Endpoint                                  | Description                         |
-| ------ | ----------------------------------------- | ----------------------------------- |
-| POST   | `/api/upload`                             | Upload and auto-process a CV        |
-| GET    | `/api/candidates`                         | Paginated candidate list            |
-| GET    | `/api/candidates/{id}`                    | Full candidate detail               |
-| DELETE | `/api/candidates/{id}`                    | Remove a candidate record           |
-| POST   | `/api/candidates/{id}/analyze`            | Re-run full analysis pipeline       |
-| GET    | `/api/candidates/{id}/email-draft`        | Retrieve or generate email draft    |
-| POST   | `/api/candidates/{id}/email-draft/regenerate` | Force LLM email regeneration    |
-| GET    | `/api/candidates/rank`                    | Ranked candidate list               |
-| GET    | `/api/dashboard/stats`                    | Aggregate dashboard statistics      |
-| POST   | `/api/auth/login`                         | JWT-based authentication            |
-| POST   | `/api/auth/signup`                        | New user registration               |
-| GET    | `/api/health`                             | System health check (LLM + DB)      |
-| PUT    | `/api/settings`                           | Update LLM provider configuration   |
-| GET    | `/api/admin/users`                        | Admin: list all users               |
+| Method | Endpoint                                      | Description                       |
+| ------ | --------------------------------------------- | --------------------------------- |
+| POST   | `/api/upload`                                 | Upload and auto-process a CV      |
+| GET    | `/api/candidates`                             | Paginated candidate list          |
+| GET    | `/api/candidates/{id}`                        | Full candidate detail             |
+| DELETE | `/api/candidates/{id}`                        | Remove a candidate record         |
+| POST   | `/api/candidates/{id}/analyze`                | Re-run full analysis pipeline     |
+| GET    | `/api/candidates/{id}/email-draft`            | Retrieve or generate email draft  |
+| POST   | `/api/candidates/{id}/email-draft/regenerate` | Force LLM email regeneration      |
+| GET    | `/api/candidates/rank`                        | Ranked candidate list             |
+| GET    | `/api/dashboard/stats`                        | Aggregate dashboard statistics    |
+| POST   | `/api/auth/login`                             | JWT-based authentication          |
+| POST   | `/api/auth/signup`                            | New user registration             |
+| GET    | `/api/health`                                 | System health check (LLM + DB)    |
+| PUT    | `/api/settings`                               | Update LLM provider configuration |
+| GET    | `/api/admin/users`                            | Admin: list all users             |
 
 ### 9.3 LLM Provider Flexibility
 
 The backend supports four LLM providers, switchable at runtime via the settings UI or environment variables:
 
-| Provider | Models                          | Use Case                      |
-| -------- | ------------------------------- | ----------------------------- |
-| Ollama   | llama3.2:3b / llama3.1:8b       | Offline / local development   |
+| Provider | Models                            | Use Case                       |
+| -------- | --------------------------------- | ------------------------------ |
+| Ollama   | llama3.2:3b / llama3.1:8b         | Offline / local development    |
 | Gemini   | gemini-2.5-flash / gemini-2.5-pro | Cloud, high-quality extraction |
-| OpenAI   | gpt-4o-mini / gpt-4o            | Proven accuracy                |
-| Grok/xAI | grok-3-mini / grok-3            | Fast inference                 |
+| OpenAI   | gpt-4o-mini / gpt-4o              | Proven accuracy                |
+| Grok/xAI | grok-3-mini / grok-3              | Fast inference                 |
 
 Large CVs (> 8,000 characters by default) are automatically routed to the larger model variant to reduce hallucinations.
 
 ### 9.4 Authentication
 
 JWT-based authentication with:
+
 - 7-day token expiry
 - Bcrypt password hashing
 - `get_current_user` dependency injected on all protected routes
@@ -473,17 +486,17 @@ The `FolderWatcher` service (built on `watchdog`) monitors `data/cv_uploads/` at
 
 ### 9.6 Frontend Pages
 
-| Page            | Route          | Description                                         |
-| --------------- | -------------- | --------------------------------------------------- |
-| Upload          | `/`            | Drag-and-drop CV upload with real-time status polling |
-| Dashboard       | `/dashboard`   | Aggregate stats, donut chart, bar charts, score cards |
-| All Candidates  | `/candidates`  | Searchable, sortable candidate table                |
-| Candidate Detail| `/candidates/[id]` | Full profile with all analysis tabs             |
-| Compare         | `/compare`     | Side-by-side radar chart comparison for up to 3 candidates |
-| Ranking         | `/ranking`     | Podium-style ranked leaderboard with score breakdown |
-| Email Drafts    | `/email-drafts`| LLM-generated missing-info emails                  |
-| Settings        | `/settings`    | LLM provider and model configuration               |
-| Login / Signup  | `/login`, `/signup` | Authentication pages                          |
+| Page             | Route               | Description                                                |
+| ---------------- | ------------------- | ---------------------------------------------------------- |
+| Upload           | `/`                 | Drag-and-drop CV upload with real-time status polling      |
+| Dashboard        | `/dashboard`        | Aggregate stats, donut chart, bar charts, score cards      |
+| All Candidates   | `/candidates`       | Searchable, sortable candidate table                       |
+| Candidate Detail | `/candidates/[id]`  | Full profile with all analysis tabs                        |
+| Compare          | `/compare`          | Side-by-side radar chart comparison for up to 3 candidates |
+| Ranking          | `/ranking`          | Podium-style ranked leaderboard with score breakdown       |
+| Email Drafts     | `/email-drafts`     | LLM-generated missing-info emails                          |
+| Settings         | `/settings`         | LLM provider and model configuration                       |
+| Login / Signup   | `/login`, `/signup` | Authentication pages                                       |
 
 ### 9.7 UI/UX Design System
 
@@ -557,26 +570,26 @@ All analysis results are stored in MongoDB as structured JSON alongside the raw 
 
 ### Backend Services
 
-| Service                  | File                              | Responsibility                          |
-| ------------------------ | --------------------------------- | --------------------------------------- |
-| CV Parser                | `services/cv_parser.py`           | PDF extraction + LLM/rule-based parsing |
-| Education Analyzer       | `services/education_analyzer.py`  | Score normalization, institution ranking, gaps |
-| Research Analyzer        | `services/research_analyzer.py`   | Journal/conference quality, authorship, topics, co-authors |
-| Experience Analyzer      | `services/experience_analyzer.py` | Timeline, gaps, trajectory, score       |
-| Candidate Analyzer       | `services/candidate_analyzer.py`  | Orchestration, summary, overall score   |
-| Email Generator          | `services/email_generator.py`     | Missing info detection + email drafting |
-| LLM Client               | `services/llm_client.py`          | Multi-provider LLM abstraction          |
-| Folder Watcher           | `services/folder_watcher.py`      | watchdog-based auto-processing          |
-| Data Refresher           | `services/data_refresher.py`      | Reference data cache refresh            |
+| Service             | File                              | Responsibility                                             |
+| ------------------- | --------------------------------- | ---------------------------------------------------------- |
+| CV Parser           | `services/cv_parser.py`           | PDF extraction + LLM/rule-based parsing                    |
+| Education Analyzer  | `services/education_analyzer.py`  | Score normalization, institution ranking, gaps             |
+| Research Analyzer   | `services/research_analyzer.py`   | Journal/conference quality, authorship, topics, co-authors |
+| Experience Analyzer | `services/experience_analyzer.py` | Timeline, gaps, trajectory, score                          |
+| Candidate Analyzer  | `services/candidate_analyzer.py`  | Orchestration, summary, overall score                      |
+| Email Generator     | `services/email_generator.py`     | Missing info detection + email drafting                    |
+| LLM Client          | `services/llm_client.py`          | Multi-provider LLM abstraction                             |
+| Folder Watcher      | `services/folder_watcher.py`      | watchdog-based auto-processing                             |
+| Data Refresher      | `services/data_refresher.py`      | Reference data cache refresh                               |
 
 ### Reference Data
 
-| File                        | Contents                                         |
-| --------------------------- | ------------------------------------------------ |
-| `university_rankings.json`  | HEC categories, QS/THE rankings, aliases         |
-| `core_conferences.json`     | CORE 2023 ranking database with acronyms         |
-| `academic_publishers.json`  | Publisher credibility classification             |
-| `journal_quality.json`      | Scimago SJR/CiteScore index (ISSN-keyed)         |
+| File                       | Contents                                 |
+| -------------------------- | ---------------------------------------- |
+| `university_rankings.json` | HEC categories, QS/THE rankings, aliases |
+| `core_conferences.json`    | CORE 2023 ranking database with acronyms |
+| `academic_publishers.json` | Publisher credibility classification     |
+| `journal_quality.json`     | Scimago SJR/CiteScore index (ISSN-keyed) |
 
 ### Key Dependencies
 
@@ -592,13 +605,13 @@ bcrypt, python-jose
 
 ## 12. Known Limitations and Future Work
 
-| Limitation                            | Planned Improvement                                 |
-| ------------------------------------- | --------------------------------------------------- |
-| OCR quality on scanned PDFs           | Integrate AWS Textract or Google Document AI        |
-| Scopus API rate limits                | Caching layer with TTL refresh                      |
-| LLM extraction accuracy on dense CVs | Fine-tune a dedicated CV extraction model           |
-| No citation count data                | Integrate Google Scholar or Semantic Scholar APIs   |
-| Single-language support (English)     | Add Urdu/Arabic CV support via multilingual models  |
+| Limitation                           | Planned Improvement                                |
+| ------------------------------------ | -------------------------------------------------- |
+| OCR quality on scanned PDFs          | Integrate AWS Textract or Google Document AI       |
+| Scopus API rate limits               | Caching layer with TTL refresh                     |
+| LLM extraction accuracy on dense CVs | Fine-tune a dedicated CV extraction model          |
+| No citation count data               | Integrate Google Scholar or Semantic Scholar APIs  |
+| Single-language support (English)    | Add Urdu/Arabic CV support via multilingual models |
 
 ---
 

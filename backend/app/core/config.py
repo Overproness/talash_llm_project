@@ -29,8 +29,8 @@ class Settings(BaseSettings):
 
     # Google Gemini
     google_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
-    gemini_model_large: str = "gemini-2.5-pro"
+    gemini_model: str = "gemini-2.0-flash"
+    gemini_model_large: str = "gemini-2.5-flash"
 
     # OpenAI
     openai_api_key: str = ""

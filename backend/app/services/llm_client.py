@@ -100,6 +100,7 @@ def _build_llm(provider: str, model: str) -> BaseChatModel:
             model=model,
             google_api_key=settings.google_api_key,
             temperature=0.1,
+            max_retries=2,
         )
 
     if provider == "openai":

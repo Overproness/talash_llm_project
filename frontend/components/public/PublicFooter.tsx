@@ -9,7 +9,7 @@ export default function PublicFooter() {
             Talash Insight
           </div>
           <p className="font-body text-xs text-on-surface-variant">
-            © 2024 Talash Insight. Intelligent Talent Acquisition.
+            © 2026 Talash Insight. Intelligent Talent Acquisition.
           </p>
         </div>
         <div className="flex flex-row items-center justify-between gap-6 w-full">

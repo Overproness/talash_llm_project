@@ -8,7 +8,6 @@
     "experimentalServices": {
         "frontend": {
             "installCommand": "cd frontend && npm install",
-            "outputDirectory": "frontend/.next",
             "buildCommand": "cd frontend && npm run build",
             "entrypoint": "frontend",
             "routePrefix": "/",

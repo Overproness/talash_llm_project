@@ -605,8 +605,8 @@ export default function CandidateProfilePage() {
                             {edu.start_year != null
                               ? `${edu.start_year}${edu.end_year != null ? ` — ${edu.end_year}` : " — ?"}`
                               : edu.end_year != null
-                              ? `${edu.end_year}`
-                              : "Unknown"}
+                                ? `${edu.end_year}`
+                                : "Unknown"}
                           </td>
                           <td className="px-5 py-3 text-right font-medium text-on-surface">
                             {edu.marks_or_cgpa || "—"}

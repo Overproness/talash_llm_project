@@ -248,7 +248,7 @@ async def _crossref_doi_lookup(title: str) -> Optional[str]:
 
             if doi and result_title:
                 similarity = fuzz.token_set_ratio(title.lower(), result_title.lower())
-                if similarity >= 70:
+                if similarity >= 65:
                     _crossref_cache[cache_key] = doi
                     return doi
 

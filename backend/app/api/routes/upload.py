@@ -31,6 +31,8 @@ async def _process_cv_background(
     try:
         parsed: CandidateDocument = await parse_cv(dest_path, settings.processed_dir)
         update_data = parsed.model_dump(exclude={"filename", "file_path"})
+        # Keep status as "processing" so the frontend continues polling while analysis runs
+        update_data["processing_status"] = "processing"
         await db.candidates.update_one(
             {"_id": ObjectId(candidate_id)},
             {"$set": update_data},
@@ -94,6 +96,21 @@ async def upload_cv(
     # Save to upload dir
     os.makedirs(settings.cv_upload_dir, exist_ok=True)
     safe_name = Path(file.filename).name
+
+    # Deduplicate: if a non-failed candidate with this filename already exists, return it
+    existing = await db.candidates.find_one(
+        {"filename": safe_name, "processing_status": {"$ne": "failed"}}
+    )
+    if existing:
+        existing_id = str(existing["_id"])
+        logger.info(f"Duplicate upload detected for {safe_name}, returning existing candidate {existing_id}")
+        return UploadResponse(
+            candidate_id=existing_id,
+            filename=safe_name,
+            status=existing.get("processing_status", "processing"),
+            message="CV already exists. Returning existing candidate.",
+        )
+
     dest_path = os.path.join(settings.cv_upload_dir, safe_name)
     # Avoid overwriting — append counter if exists
     counter = 1

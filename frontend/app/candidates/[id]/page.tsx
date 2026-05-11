@@ -602,7 +602,11 @@ export default function CandidateProfilePage() {
                             {edu.institution || edu.board_or_affiliation || "—"}
                           </td>
                           <td className="px-5 py-3 text-on-surface-variant">
-                            {edu.start_year ?? "?"} — {edu.end_year ?? "?"}
+                            {edu.start_year != null
+                              ? `${edu.start_year}${edu.end_year != null ? ` — ${edu.end_year}` : " — ?"}`
+                              : edu.end_year != null
+                              ? `${edu.end_year}`
+                              : "Unknown"}
                           </td>
                           <td className="px-5 py-3 text-right font-medium text-on-surface">
                             {edu.marks_or_cgpa || "—"}

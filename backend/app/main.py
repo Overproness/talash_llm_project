@@ -31,8 +31,12 @@ async def _process_watched_file(file_path: str, settings) -> None:
     db = get_db()
     try:
         filename = Path(file_path).name
-        # Skip if already in DB
-        existing = await db.candidates.find_one({"file_path": file_path})
+        # Check by both file_path and filename — the upload API creates the DB record
+        # BEFORE writing the file, so by the time we run here the record already exists.
+        existing = await db.candidates.find_one(
+            {"$or": [{"file_path": file_path}, {"filename": filename}],
+             "processing_status": {"$ne": "failed"}}
+        )
         if existing:
             logger.info(f"Folder watcher: {filename} already in DB, skipping.")
             return

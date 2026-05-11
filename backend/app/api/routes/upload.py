@@ -120,13 +120,12 @@ async def upload_cv(
         dest_path = os.path.join(settings.cv_upload_dir, f"{stem}_{counter}{suffix}")
         counter += 1
 
-    with open(dest_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    logger.info(f"Saved uploaded file to {dest_path}")
+    final_filename = Path(dest_path).name
 
-    # Insert a pending record and return immediately
+    # Insert the DB record BEFORE writing the file to disk so the folder watcher
+    # will always find an existing record and skip this file when it fires.
     pending_doc = {
-        "filename": Path(dest_path).name,
+        "filename": final_filename,
         "file_path": dest_path,
         "processing_status": "processing",
         "processing_error": "",
@@ -147,6 +146,11 @@ async def upload_cv(
     result = await db.candidates.insert_one(pending_doc)
     candidate_id = str(result.inserted_id)
 
+    # Now write the file — the DB record exists, so the folder watcher will skip it
+    with open(dest_path, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+    logger.info(f"Saved uploaded file to {dest_path}")
+
     # Kick off parsing + analysis in the background (non-blocking)
     background_tasks.add_task(
         _process_cv_background, dest_path, candidate_id, db, settings
@@ -154,7 +158,7 @@ async def upload_cv(
 
     return UploadResponse(
         candidate_id=candidate_id,
-        filename=Path(dest_path).name,
+        filename=final_filename,
         status="processing",
         message="CV uploaded successfully. Analysis is running in the background.",
     )

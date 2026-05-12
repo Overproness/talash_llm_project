@@ -5,6 +5,7 @@ Handles:
   2. Structured field extraction (Ollama LLM primary, rule-based fallback)
   3. Missing-field detection
   4. CSV export
+  5. Multi-CV PDF detection and splitting
 """
 
 import csv
@@ -486,6 +487,147 @@ def export_to_csv(doc: CandidateDocument, output_dir: str) -> str:
         writer.writerows(rows)
 
     return csv_path
+
+
+# ─── Multi-CV detection and splitting ────────────────────────────────────────
+
+# Matches the portal header that begins each candidate's section in batch PDFs,
+# e.g. "Candidate for the Post of Assistant Professor - … (Apply Date: …)"
+_MULTI_CV_BOUNDARY_RE = re.compile(
+    r"Candidate\s+for\s+the\s+Post\s+of",
+    re.IGNORECASE,
+)
+
+
+def _count_cv_boundaries(doc: "fitz.Document") -> list[int]:  # type: ignore[name-defined]
+    """Return list of page indices (0-based) where a new CV starts."""
+    return [
+        i for i in range(len(doc))
+        if _MULTI_CV_BOUNDARY_RE.search(doc[i].get_text("text"))
+    ]
+
+
+def count_cvs_in_pdf(pdf_path: str) -> int:
+    """Return the number of individual CVs contained in a PDF file.
+
+    Detects the *'Candidate for the Post of'* header used by NUST-style
+    application portals, where multiple applicants are batched into one PDF.
+    Returns **1** for ordinary single-CV files.
+    """
+    try:
+        doc = fitz.open(pdf_path)
+        count = len(_count_cv_boundaries(doc))
+        doc.close()
+        return max(count, 1)
+    except Exception as e:
+        logger.warning(f"Multi-CV detection error for {pdf_path}: {e}")
+        return 1
+
+
+def count_cvs_in_bytes(pdf_bytes: bytes) -> int:
+    """Same as :func:`count_cvs_in_pdf` but operates on raw PDF bytes."""
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        count = len(_count_cv_boundaries(doc))
+        doc.close()
+        return max(count, 1)
+    except Exception as e:
+        logger.warning(f"Multi-CV detection error (bytes): {e}")
+        return 1
+
+
+def _extract_candidate_name_from_text(text: str) -> str:
+    """Heuristic: pull the candidate's name from the first page of their CV section."""
+    # Portal format: "Name  FIRSTNAME LASTNAME   Father's/Guardian  ..."
+    # Two or more spaces separate the label from the value.
+    name_match = re.search(
+        r"(?:^|\n)\s*Name\s{2,}([A-Za-z][A-Za-z\s\.]{2,55?}?)(?:\s{2,}|\t|\n)",
+        text,
+    )
+    if name_match:
+        return name_match.group(1).strip()
+    # Fallback: first short line that is all letters/spaces (likely a name)
+    for line in text.splitlines()[:10]:
+        line = line.strip()
+        if 5 < len(line) < 60 and re.match(r"^[A-Za-z\s\.]+$", line):
+            if sum(1 for c in line if c.isupper()) >= 2:
+                return line
+    return ""
+
+
+def split_pdf_bytes(pdf_bytes: bytes, original_filename: str, output_dir: str) -> list[str]:
+    """Split a multi-CV PDF (provided as raw bytes) into individual PDF files.
+
+    Each individual PDF is saved in *output_dir* with a filename derived from
+    the original filename and the detected candidate name.
+
+    Returns a list of absolute paths to the split PDFs.
+    Falls back to writing the original bytes as a single file and returning
+    ``[that_path]`` if splitting fails or only one CV is detected.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+    try:
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        total_pages = len(doc)
+        cv_start_pages = _count_cv_boundaries(doc)
+
+        # Single CV — just save as-is
+        if len(cv_start_pages) <= 1:
+            out_path = _unique_path(output_dir, original_filename)
+            with open(out_path, "wb") as fh:
+                fh.write(pdf_bytes)
+            doc.close()
+            return [out_path]
+
+        base_stem = Path(original_filename).stem
+        output_paths: list[str] = []
+
+        for idx, start_page in enumerate(cv_start_pages):
+            end_page = (
+                cv_start_pages[idx + 1] - 1
+                if idx + 1 < len(cv_start_pages)
+                else total_pages - 1
+            )
+
+            first_page_text = doc[start_page].get_text("text")
+            cand_name = _extract_candidate_name_from_text(first_page_text)
+            safe_part = re.sub(r"[^\w\-]", "_", cand_name).strip("_") if cand_name else f"cv_{idx + 1}"
+            out_path = _unique_path(output_dir, f"{base_stem}_{safe_part}.pdf")
+
+            sub_doc = fitz.open()
+            sub_doc.insert_pdf(doc, from_page=start_page, to_page=end_page)
+            sub_doc.save(out_path)
+            sub_doc.close()
+            output_paths.append(out_path)
+            logger.info(
+                f"[multi-cv] Split {idx + 1}/{len(cv_start_pages)}: "
+                f"pages {start_page + 1}-{end_page + 1} → {Path(out_path).name}"
+            )
+
+        doc.close()
+        return output_paths
+
+    except Exception as e:
+        logger.error(f"PDF splitting failed for {original_filename}: {e}")
+        # Fallback: save original bytes as single file
+        out_path = _unique_path(output_dir, original_filename)
+        with open(out_path, "wb") as fh:
+            fh.write(pdf_bytes)
+        return [out_path]
+
+
+def _unique_path(directory: str, filename: str) -> str:
+    """Return a path that does not already exist by appending a counter."""
+    path = os.path.join(directory, filename)
+    if not os.path.exists(path):
+        return path
+    stem = Path(filename).stem
+    suffix = Path(filename).suffix
+    counter = 1
+    while os.path.exists(path):
+        path = os.path.join(directory, f"{stem}_{counter}{suffix}")
+        counter += 1
+    return path
 
 
 # ─── Main parse function ──────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { CandidateFull, CandidateListItem, DashboardStats, EmailDraft, RankingResponse, Token, UploadResponse, UserPublic } from './types'
+import { BulkCandidateInfo, CandidateFull, CandidateListItem, DashboardStats, EmailDraft, RankingResponse, Token, UploadResponse, UserPublic } from './types'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL
   ? `${process.env.NEXT_PUBLIC_API_URL}/api`

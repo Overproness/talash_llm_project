@@ -256,7 +256,7 @@ class CandidateDocument(BaseModel):
     # Metadata
     filename: str
     file_path: str
-    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+    uploaded_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
     processing_status: str = "pending"   # pending / processing / done / failed
     processing_error: str = ""
 
@@ -292,7 +292,7 @@ class CandidateListItem(BaseModel):
     id: str
     name: str
     filename: str
-    uploaded_at: datetime
+    uploaded_at: Optional[datetime] = None
     processing_status: str
     overall_score: Optional[float]
     education_score: Optional[float] = None
@@ -304,8 +304,15 @@ class CandidateListItem(BaseModel):
     has_email_draft: bool = False
 
 
-class UploadResponse(BaseModel):
+class BulkCandidateInfo(BaseModel):
     candidate_id: str
+    filename: str
+
+
+class UploadResponse(BaseModel):
+    candidate_id: str          # First (or only) candidate — kept for backward compat
     filename: str
     status: str
     message: str
+    is_bulk: bool = False      # True when the PDF contained multiple CVs
+    candidates: list[BulkCandidateInfo] = []  # Populated for bulk uploads

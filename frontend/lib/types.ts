@@ -294,11 +294,18 @@ export interface CandidateFull {
   summary: string
 }
 
+export interface BulkCandidateInfo {
+  candidate_id: string
+  filename: string
+}
+
 export interface UploadResponse {
   candidate_id: string
   filename: string
   status: string
   message: string
+  is_bulk?: boolean
+  candidates?: BulkCandidateInfo[]
 }
 
 // ─── Dashboard stats ──────────────────────────────────────────────────────────

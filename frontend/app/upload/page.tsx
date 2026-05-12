@@ -14,6 +14,9 @@ interface FileItem {
   message: string;
   candidateId?: string;
   progress: number;
+  isBulk?: boolean;
+  bulkTotal?: number;
+  bulkDone?: number;
 }
 
 type ActivityStatus = "processing" | "completed" | "failed";
@@ -95,6 +98,48 @@ export default function UploadPage() {
     [addFiles],
   );
 
+  /**
+   * Poll a single candidate until its processing_status is "done" or "failed".
+   * onDone is called when the status resolves (either outcome).
+   * onSuccess / onError carry the final result.
+   */
+  const pollSingleCandidate = useCallback(
+    (
+      candidateId: string,
+      displayName: string,
+      onDone: (score?: number | null) => void,
+      onSuccess: (score?: number | null) => void,
+      onError: (err: string) => void,
+    ) => {
+      let attempts = 0;
+      const maxAttempts = 120;
+      const poll = async () => {
+        if (attempts >= maxAttempts) {
+          onError("Timed out waiting for analysis.");
+          onDone();
+          return;
+        }
+        attempts++;
+        try {
+          const candidate = await api.getCandidate(candidateId);
+          if (candidate.processing_status === "done") {
+            onSuccess(candidate.overall_score);
+            onDone(candidate.overall_score);
+          } else if (candidate.processing_status === "failed") {
+            onError(candidate.processing_error ?? "Processing failed.");
+            onDone();
+          } else {
+            setTimeout(poll, 1000);
+          }
+        } catch {
+          setTimeout(poll, 2000);
+        }
+      };
+      setTimeout(poll, 1000);
+    },
+    [],
+  );
+
   const uploadAll = async () => {
     const pending = files.filter((f) => f.status === "idle");
     for (let i = 0; i < pending.length; i++) {
@@ -118,6 +163,104 @@ export default function UploadPage() {
       try {
         const res = await api.uploadCV(item.file);
         refreshDbStats();
+
+        // ── Bulk upload (multi-CV PDF) ──────────────────────────────────────
+        if (res.is_bulk && res.candidates && res.candidates.length > 1) {
+          const bulkCandidates = res.candidates;
+          setFiles((prev) =>
+            prev.map((f) =>
+              f.file.name === item.file.name
+                ? {
+                    ...f,
+                    status: "parsing",
+                    message: `Detected ${bulkCandidates.length} CVs — processing all…`,
+                    candidateId: bulkCandidates[0].candidate_id,
+                    progress: 60,
+                    isBulk: true,
+                    bulkTotal: bulkCandidates.length,
+                    bulkDone: 0,
+                  }
+                : f,
+            ),
+          );
+
+          // Add an activity entry for each split CV
+          for (const cand of bulkCandidates) {
+            setActivityHistory((prev) => [
+              {
+                name: cand.filename,
+                time: formatActivityTime(new Date()),
+                size: "",
+                status: "processing" as ActivityStatus,
+              },
+              ...prev.filter((a) => a.name !== cand.filename),
+            ]);
+          }
+
+          // Poll each split CV independently; track how many finish
+          let completedCount = 0;
+          const onBulkCandidateDone = () => {
+            completedCount++;
+            setFiles((prev) =>
+              prev.map((f) =>
+                f.file.name === item.file.name
+                  ? {
+                      ...f,
+                      bulkDone: completedCount,
+                      message: `Processing ${bulkCandidates.length} CVs… (${completedCount}/${bulkCandidates.length} done)`,
+                      progress: Math.round(
+                        60 + (completedCount / bulkCandidates.length) * 40,
+                      ),
+                      ...(completedCount === bulkCandidates.length
+                        ? {
+                            status: "done" as UploadStatus,
+                            message: `All ${bulkCandidates.length} CVs parsed and analysed.`,
+                            progress: 100,
+                          }
+                        : {}),
+                    }
+                  : f,
+              ),
+            );
+            if (completedCount === bulkCandidates.length) {
+              refreshDbStats();
+            }
+          };
+
+          for (const cand of bulkCandidates) {
+            pollSingleCandidate(
+              cand.candidate_id,
+              cand.filename,
+              onBulkCandidateDone,
+              () => {
+                setActivityHistory((prev) => [
+                  {
+                    name: cand.filename,
+                    time: formatActivityTime(new Date()),
+                    size: "",
+                    status: "completed" as ActivityStatus,
+                  },
+                  ...prev.filter((a) => a.name !== cand.filename),
+                ]);
+              },
+              (err) => {
+                setActivityHistory((prev) => [
+                  {
+                    name: cand.filename,
+                    time: formatActivityTime(new Date()),
+                    size: "",
+                    status: "failed" as ActivityStatus,
+                    error: err,
+                  },
+                  ...prev.filter((a) => a.name !== cand.filename),
+                ]);
+              },
+            );
+          }
+          continue;
+        }
+
+        // ── Single CV upload ────────────────────────────────────────────────
         setFiles((prev) =>
           prev.map((f) =>
             f.file.name === item.file.name
@@ -133,80 +276,58 @@ export default function UploadPage() {
         );
 
         const candidateId = res.candidate_id;
-        let attempts = 0;
-        const maxAttempts = 120;
-        const poll = async () => {
-          if (attempts >= maxAttempts) {
+        pollSingleCandidate(
+          candidateId,
+          item.file.name,
+          () => {
+            refreshDbStats();
+          },
+          (score) => {
             setFiles((prev) =>
               prev.map((f) =>
                 f.candidateId === candidateId
                   ? {
                       ...f,
-                      status: "error",
-                      message: "Timed out waiting for analysis.",
-                      progress: 0,
+                      status: "done",
+                      message: "CV parsed and analysed successfully.",
+                      progress: 100,
                     }
                   : f,
               ),
             );
-            return;
-          }
-          attempts++;
-          try {
-            const candidate = await api.getCandidate(candidateId);
-            const status = candidate.processing_status;
-            if (status === "done") {
-              setFiles((prev) =>
-                prev.map((f) =>
-                  f.candidateId === candidateId
-                    ? {
-                        ...f,
-                        status: "done",
-                        message: "CV parsed and analysed successfully.",
-                        progress: 100,
-                      }
-                    : f,
-                ),
-              );
-              setActivityHistory((prev) => [
-                {
-                  name: item.file.name,
-                  time: formatActivityTime(new Date()),
-                  size: `${(item.file.size / (1024 * 1024)).toFixed(1)} MB`,
-                  status: "completed",
-                  score: candidate.overall_score ?? undefined,
-                },
-                ...prev,
-              ]);
-              refreshDbStats();
-            } else if (status === "failed") {
-              const error = candidate.processing_error ?? "Processing failed.";
-              setFiles((prev) =>
-                prev.map((f) =>
-                  f.candidateId === candidateId
-                    ? { ...f, status: "error", message: error, progress: 0 }
-                    : f,
-                ),
-              );
-              setActivityHistory((prev) => [
-                {
-                  name: item.file.name,
-                  time: formatActivityTime(new Date()),
-                  size: `${(item.file.size / (1024 * 1024)).toFixed(1)} MB`,
-                  status: "failed",
-                  error,
-                },
-                ...prev,
-              ]);
-              refreshDbStats();
-            } else {
-              setTimeout(poll, 1000);
-            }
-          } catch {
-            setTimeout(poll, 2000);
-          }
-        };
-        setTimeout(poll, 1000);
+            setActivityHistory((prev) => [
+              {
+                name: item.file.name,
+                time: formatActivityTime(new Date()),
+                size: `${(item.file.size / (1024 * 1024)).toFixed(1)} MB`,
+                status: "completed" as ActivityStatus,
+                score: typeof score === "number" ? score : undefined,
+              },
+              ...prev,
+            ]);
+            refreshDbStats();
+          },
+          (err) => {
+            setFiles((prev) =>
+              prev.map((f) =>
+                f.candidateId === candidateId
+                  ? { ...f, status: "error", message: err, progress: 0 }
+                  : f,
+              ),
+            );
+            setActivityHistory((prev) => [
+              {
+                name: item.file.name,
+                time: formatActivityTime(new Date()),
+                size: `${(item.file.size / (1024 * 1024)).toFixed(1)} MB`,
+                status: "failed" as ActivityStatus,
+                error: err,
+              },
+              ...prev,
+            ]);
+            refreshDbStats();
+          },
+        );
       } catch (err: unknown) {
         const errorMessage =
           err instanceof Error ? err.message : "Upload failed";
@@ -575,41 +696,48 @@ export default function UploadPage() {
                                         ? "bg-error"
                                         : "bg-primary"
                                   }`}
-                                  style={{
-                                    width:
-                                      item.status === "idle"
-                                        ? "0%"
-                                        : item.status === "uploading"
-                                          ? "30%"
-                                          : item.status === "parsing"
-                                            ? "65%"
-                                            : item.status === "done"
-                                              ? "100%"
-                                              : "0%",
-                                  }}
+                                  style={{ width: `${item.progress}%` }}
                                 />
                               </div>
                             </td>
                             <td className="px-6 py-5">
-                              <span
-                                className={`px-2 py-1 text-[9px] font-bold uppercase tracking-tighter rounded ${badge.className}`}
-                              >
-                                {badge.label}
-                              </span>
+                              <div className="flex flex-col gap-0.5">
+                                <span
+                                  className={`px-2 py-1 text-[9px] font-bold uppercase tracking-tighter rounded ${badge.className} self-start`}
+                                >
+                                  {item.isBulk && item.status === "parsing"
+                                    ? `Batch (${item.bulkDone ?? 0}/${item.bulkTotal ?? "?"})`
+                                    : badge.label}
+                                </span>
+                                {item.isBulk && item.bulkTotal && (
+                                  <span className="text-[9px] text-on-surface-variant">
+                                    {item.bulkTotal} CVs detected
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-8 py-5 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                {item.status === "done" && item.candidateId && (
-                                  <button
-                                    onClick={() =>
-                                      router.push(
-                                        `/candidates/${item.candidateId}`,
-                                      )
-                                    }
-                                    className="text-xs text-primary font-semibold hover:underline"
-                                  >
-                                    View →
-                                  </button>
+                                {item.status === "done" && (
+                                  item.isBulk ? (
+                                    <button
+                                      onClick={() => router.push("/candidates")}
+                                      className="text-xs text-primary font-semibold hover:underline"
+                                    >
+                                      View All →
+                                    </button>
+                                  ) : item.candidateId ? (
+                                    <button
+                                      onClick={() =>
+                                        router.push(
+                                          `/candidates/${item.candidateId}`,
+                                        )
+                                      }
+                                      className="text-xs text-primary font-semibold hover:underline"
+                                    >
+                                      View →
+                                    </button>
+                                  ) : null
                                 )}
                                 {item.status === "idle" && (
                                   <button

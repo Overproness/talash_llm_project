@@ -20,6 +20,8 @@ function CandidatesContent() {
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,17 +32,23 @@ function CandidatesContent() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleDelete = async (id: string) => {
-    const ok = confirm("Are you sure you want to delete this candidate?");
-    if (!ok) return;
+  const openDeleteModal = (id: string) => {
+    setSelectedId(id);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedId) return;
 
     try {
-      setDeletingId(id);
+      setDeletingId(selectedId);
 
-      await api.deleteCandidate(id);
+      await api.deleteCandidate(selectedId);
 
-      // remove from UI immediately
-      setCandidates((prev) => prev.filter((c) => c.id !== id));
+      setCandidates((prev) => prev.filter((c) => c.id !== selectedId));
+
+      setDeleteModalOpen(false);
+      setSelectedId(null);
     } catch (err) {
       console.error(err);
       alert("Failed to delete candidate");
@@ -219,25 +227,39 @@ function CandidatesContent() {
                         )}
                       </td>
                       <td className="px-4 py-4 text-right">
-                        <div className="flex justify-end items-center gap-3">
-                          <Link
-                            href={`/candidates/${c.id}`}
-                            className="text-xs text-primary font-semibold hover:underline"
-                          >
-                            View →
-                          </Link>
+                        <div className="flex justify-end">
+                          <div className="flex items-center gap-1 bg-surface-container rounded-xl p-1">
+                            {/* View */}
+                            <Link
+                              href={`/candidates/${c.id}`}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary hover:bg-surface-container-high transition"
+                            >
+                              <span className="material-symbols-outlined text-sm">
+                                visibility
+                              </span>
+                              View
+                            </Link>
 
-                          <button
-                            onClick={() => handleDelete(c.id)}
-                            disabled={deletingId === c.id}
-                            className={`text-xs font-semibold hover:underline ${
-                              deletingId === c.id
-                                ? "text-slate-400 cursor-not-allowed"
-                                : "text-red-500"
-                            }`}
-                          >
-                            {deletingId === c.id ? "Deleting..." : "Delete"}
-                          </button>
+                            {/* Divider */}
+                            <div className="w-px h-5 bg-surface-container-high" />
+
+                            {/* Delete */}
+                            <button
+                              onClick={() => openDeleteModal(c.id)}
+                              disabled={deletingId === c.id}
+                              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold transition
+          ${
+            deletingId === c.id
+              ? "text-slate-400 cursor-not-allowed"
+              : "text-red-500 hover:bg-error-container/20"
+          }`}
+                            >
+                              <span className="material-symbols-outlined text-sm">
+                                delete
+                              </span>
+                              {deletingId === c.id ? "Deleting..." : "Delete"}
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -248,6 +270,55 @@ function CandidatesContent() {
           </div>
         </div>
       </main>
+      {deleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setDeleteModalOpen(false)}
+          />
+
+          {/* modal */}
+          <div className="relative w-full max-w-md mx-4 rounded-2xl bg-surface-container-lowest shadow-2xl border border-surface-container overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-error-container flex items-center justify-center">
+                  <span className="material-symbols-outlined text-on-error-container">
+                    warning
+                  </span>
+                </div>
+
+                <div>
+                  <h2 className="text-lg font-bold text-on-surface">
+                    Delete Candidate
+                  </h2>
+                  <p className="text-sm text-on-surface-variant mt-1">
+                    This action cannot be undone. The candidate will be
+                    permanently removed.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  onClick={() => setDeleteModalOpen(false)}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-surface-container text-on-surface hover:bg-surface-container-high"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={confirmDelete}
+                  disabled={!!deletingId}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-error-container text-on-error-container hover:opacity-90 disabled:opacity-50"
+                >
+                  {deletingId ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -27,7 +27,7 @@ from app.services.llm_client import extract_with_llm_custom, is_llm_available
 
 logger = logging.getLogger(__name__)
 
-# Date parsing utilities
+# ─── Date parsing utilities ───────────────────────────────────────────────────
 
 _MONTH_MAP = {
     "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
@@ -72,7 +72,7 @@ def _months_between(start: tuple[int, int], end: tuple[int, int]) -> int:
     return _date_to_months(end) - _date_to_months(start)
 
 
-# Timeline overlap detection
+# ─── Timeline overlap detection ──────────────────────────────────────────────
 
 def _detect_overlaps(
     education: list[EducationRecord],
@@ -153,7 +153,7 @@ def _detect_overlaps(
     return overlaps
 
 
-# Experience gap detection
+# ─── Experience gap detection ─────────────────────────────────────────────────
 
 def _detect_experience_gaps(
     experience: list[ExperienceRecord],
@@ -252,7 +252,7 @@ def _check_exp_gap_justification(
     return False, "No educational or professional activity found during this gap."
 
 
-# Career progression analysis
+# ─── Career progression analysis ─────────────────────────────────────────────
 
 _SENIORITY_KEYWORDS = {
     1: ["intern", "trainee", "student", "assistant", "junior"],
@@ -301,7 +301,7 @@ def _analyze_career_trajectory(experience: list[ExperienceRecord]) -> str:
     return "lateral"
 
 
-# Total experience calculation
+# ─── Total experience calculation ────────────────────────────────────────────
 
 def _calculate_total_experience(experience: list[ExperienceRecord]) -> Optional[float]:
     """Calculate total years of experience, accounting for overlaps."""
@@ -328,7 +328,7 @@ def _calculate_total_experience(experience: list[ExperienceRecord]) -> Optional[
     return round(total_months / 12.0, 1)
 
 
-# Rule-based experience analysis
+# ─── Rule-based experience analysis ──────────────────────────────────────────
 
 def analyze_experience_rule_based(doc: CandidateDocument) -> ExperienceAnalysis:
     """Perform experience analysis without LLM."""
@@ -463,7 +463,7 @@ def _compute_experience_score(
     return round(max(0, min(100, score)), 1)
 
 
-# LLM-enhanced experience analysis
+# ─── LLM-enhanced experience analysis ────────────────────────────────────────
 
 _EXP_ANALYSIS_PROMPT = """Analyze this candidate's professional experience and employment history for a university recruitment assessment.
 
@@ -533,7 +533,7 @@ async def analyze_experience_with_llm(doc: CandidateDocument) -> ExperienceAnaly
     return analysis
 
 
-# Main entry point
+# ─── Main entry point ─────────────────────────────────────────────────────────
 
 async def analyze_experience(doc: CandidateDocument) -> ExperienceAnalysis:
     """Analyze candidate's professional experience. Uses LLM if available."""

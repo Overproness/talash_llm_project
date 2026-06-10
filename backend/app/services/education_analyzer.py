@@ -31,12 +31,12 @@ from app.services.llm_client import extract_with_llm_custom, is_llm_available
 
 logger = logging.getLogger(__name__)
 
-# Education level ordering for progression analysis
+# ─── Education level ordering for progression analysis ────────────────────────
 
 LEVEL_ORDER = {"SSE": 1, "HSSC": 2, "UG": 3, "PG": 4, "PhD": 5, "Other": 0}
 
 
-# Institution ranking lookup
+# ─── Institution ranking lookup ───────────────────────────────────────────────
 
 @lru_cache(maxsize=1)
 def _load_university_rankings() -> list[dict]:
@@ -135,7 +135,7 @@ def _level_rank(level: str) -> int:
     return LEVEL_ORDER.get(level, 0)
 
 
-# Gap detection
+# ─── Gap detection ────────────────────────────────────────────────────────────
 
 def _detect_education_gaps(
     education: list[EducationRecord],
@@ -213,7 +213,7 @@ def _parse_year(date_str: str) -> Optional[int]:
     return int(match.group(0)) if match else None
 
 
-# Performance trend analysis
+# ─── Performance trend analysis ──────────────────────────────────────────────
 
 def _analyze_performance_trend(education: list[EducationRecord]) -> str:
     """Analyze whether academic performance is improving, declining, or stable."""
@@ -238,7 +238,7 @@ def _analyze_performance_trend(education: list[EducationRecord]) -> str:
     return "stable"
 
 
-# Specialization consistency
+# ─── Specialization consistency ──────────────────────────────────────────────
 
 def _check_specialization_consistency(education: list[EducationRecord]) -> str:
     """Check if specializations across degrees are consistent."""
@@ -272,7 +272,7 @@ def _check_specialization_consistency(education: list[EducationRecord]) -> str:
     return "unrelated"
 
 
-# Rule-based education analysis
+# ─── Rule-based education analysis ───────────────────────────────────────────
 
 def analyze_education_rule_based(doc: CandidateDocument) -> EducationAnalysis:
     """Perform education analysis without LLM, using structured data."""
@@ -399,7 +399,7 @@ def _compute_education_score(
     return round(max(0, min(100, score)), 1)
 
 
-# LLM-enhanced education analysis
+# ─── LLM-enhanced education analysis ─────────────────────────────────────────
 
 _EDU_ANALYSIS_PROMPT = """Analyze this candidate's educational profile and provide a detailed assessment.
 
@@ -484,7 +484,7 @@ async def analyze_education_with_llm(doc: CandidateDocument) -> EducationAnalysi
     return analysis
 
 
-# Main entry point
+# ─── Main entry point ─────────────────────────────────────────────────────────
 
 async def analyze_education(doc: CandidateDocument) -> EducationAnalysis:
     """Analyze candidate's educational profile. Uses LLM if available, else rule-based."""

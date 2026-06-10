@@ -239,7 +239,7 @@ async def get_dashboard_stats(
     }
 
 
-# Candidate Ranking (Milestone 3 — Extra Credit)
+# ─── Candidate Ranking (Milestone 3 — Extra Credit) ──────────────────────────
 
 @router.get("/candidates/rank")
 async def rank_candidates(

@@ -13,7 +13,7 @@ from app.services.scrapers.base import load_metadata, mark_scraper_error
 
 logger = logging.getLogger(__name__)
 
-# Scraper registry
+# ─── Scraper registry ─────────────────────────────────────────────────────────
 # Imported lazily to avoid circular import and allow optional scraper failures
 
 def get_scrapers() -> dict[str, tuple[Callable, int]]:
@@ -36,7 +36,7 @@ def get_scrapers() -> dict[str, tuple[Callable, int]]:
     }
 
 
-# Cache invalidation
+# ─── Cache invalidation ───────────────────────────────────────────────────────
 
 def _invalidate_caches() -> None:
     """Clear all lru_cache loaders in research_analyzer and education_analyzer."""
@@ -53,7 +53,7 @@ def _invalidate_caches() -> None:
         logger.warning(f"Could not clear education_analyzer cache: {e}")
 
 
-# Core runner
+# ─── Core runner ──────────────────────────────────────────────────────────────
 
 async def run_scraper(name: str, fn: Callable) -> bool:
     """Run a single scraper in a thread (sync fn) with full error isolation."""

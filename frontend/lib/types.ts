@@ -1,4 +1,4 @@
-// ─── Auth types ───────────────────────────────────────────────────────────────
+// Auth types
 
 export interface UserPublic {
   id: string
@@ -12,7 +12,7 @@ export interface Token {
   token_type: string
 }
 
-// ─── Sub-types ────────────────────────────────────────────────────────────────
+// Sub-types
 
 export interface PersonalInfo {
   name: string
@@ -81,7 +81,7 @@ export interface Supervision {
   thesis_title: string
 }
 
-// ─── Analysis types (Milestone 2) ─────────────────────────────────────────────
+// Analysis types (Milestone 2)
 
 export interface EducationGap {
   from_level: string
@@ -170,7 +170,7 @@ export interface ResearchProfileSummary {
   overall_assessment: string
 }
 
-// ─── Milestone 3 research quality types ──────────────────────────────────────
+// Milestone 3 research quality types
 
 export interface JournalQualityInfo {
   scopus_indexed: boolean
@@ -249,7 +249,7 @@ export interface EmailDraft {
   missing_items: string[]
 }
 
-// ─── Main candidate types ─────────────────────────────────────────────────────
+// Main candidate types
 
 export interface CandidateListItem {
   id: string
@@ -308,7 +308,7 @@ export interface UploadResponse {
   candidates?: BulkCandidateInfo[]
 }
 
-// ─── Dashboard stats ──────────────────────────────────────────────────────────
+// Dashboard stats
 
 export interface DashboardStats {
   total_candidates: number

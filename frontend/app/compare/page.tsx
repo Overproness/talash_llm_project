@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { CandidateFull, CandidateListItem } from "@/lib/types";
 import { useEffect, useState } from "react";
 
-// ── Colour palette for up to 3 candidate slots ──────────────────────────────
+// Colour palette for up to 3 candidate slots
 const COLORS = [
   {
     text: "text-primary",
@@ -31,7 +31,7 @@ const COLORS = [
   },
 ];
 
-// ── Radar chart constants ─────────────────────────────────────────────────────
+// Radar chart constants
 // SVG viewBox "0 0 200 200", labels placed via absolute CSS
 const CX = 100;
 const CY = 100;
@@ -59,7 +59,7 @@ function getRadarScores(c: CandidateFull): number[] {
   ];
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 function scoreBadgeClass(v: number | null | undefined): string {
   if (v == null) return "bg-surface-container text-outline";
   if (v >= 80) return "bg-emerald-100 text-emerald-700";
@@ -120,7 +120,7 @@ function candidateFirstName(c: CandidateFull): string {
   return c.personal_info.name?.split(" ")[0] || c.filename || "Candidate";
 }
 
-// ── Candidate slot card ───────────────────────────────────────────────────────
+// Candidate slot card
 function CandidateSlot({
   candidate,
   colorIdx,
@@ -192,7 +192,7 @@ function CandidateSlot({
   );
 }
 
-// ── Candidate picker modal ────────────────────────────────────────────────────
+// Candidate picker modal
 function CandidatePicker({
   candidates,
   alreadySelected,
@@ -272,7 +272,7 @@ function CandidatePicker({
   );
 }
 
-// ── Radar SVG ─────────────────────────────────────────────────────────────────
+// Radar SVG
 function RadarChart({ slots }: { slots: (CandidateFull | null)[] }) {
   const gridLevels = [25, 50, 75, 100];
   const filledSlots = slots
@@ -345,7 +345,7 @@ function RadarChart({ slots }: { slots: (CandidateFull | null)[] }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// Main page
 export default function ComparePage() {
   const [candidateList, setCandidateList] = useState<CandidateListItem[]>([]);
   const [slots, setSlots] = useState<(CandidateFull | null)[]>([

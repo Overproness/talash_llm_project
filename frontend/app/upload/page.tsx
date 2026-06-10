@@ -164,7 +164,7 @@ export default function UploadPage() {
         const res = await api.uploadCV(item.file);
         refreshDbStats();
 
-        // ── Bulk upload (multi-CV PDF) ──────────────────────────────────────
+        // Bulk upload (multi-CV PDF)
         if (res.is_bulk && res.candidates && res.candidates.length > 1) {
           const bulkCandidates = res.candidates;
           setFiles((prev) =>
@@ -260,7 +260,7 @@ export default function UploadPage() {
           continue;
         }
 
-        // ── Single CV upload ────────────────────────────────────────────────
+        // Single CV upload
         setFiles((prev) =>
           prev.map((f) =>
             f.file.name === item.file.name

@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     mongodb_url: str = "mongodb://localhost:27017"
     mongodb_db: str = "talash"
 
-    # ── LLM Provider ─────────────────────────────────────────────────────────
+    # LLM Provider
     # Supported values: ollama | gemini | openai | grok
     llm_provider: str = "ollama"
 
@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     # are routed to the more capable "large" model to reduce hallucinations.
     large_cv_threshold_chars: int = 4000
 
-    # ── Storage ───────────────────────────────────────────────────────────────
+    # Storage
     cv_upload_dir: str = "data/cv_uploads"
     processed_dir: str = "data/processed"
     sample_cvs_dir: str = "data/sample_cvs"
@@ -67,12 +67,12 @@ class Settings(BaseSettings):
                 self.reference_data_dir = "/tmp/reference_data"
         return self
 
-    # ── Auth / JWT ────────────────────────────────────────────────────────────
+    # Auth / JWT
     secret_key: str = "change-this-in-production-use-a-long-random-string"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 10080  # 7 days
 
-    # ── External APIs ─────────────────────────────────────────────────────────
+    # External APIs
     # Elsevier / Scopus API key (note: env var uses typo "elseivier_api_key")
     elseivier_api_key: str = ""
 

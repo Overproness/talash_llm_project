@@ -20,6 +20,7 @@ function CandidatesContent() {
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     api
@@ -28,6 +29,25 @@ function CandidatesContent() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  const handleDelete = async (id: string) => {
+    const ok = confirm("Are you sure you want to delete this candidate?");
+    if (!ok) return;
+
+    try {
+      setDeletingId(id);
+
+      await api.deleteCandidate(id);
+
+      // remove from UI immediately
+      setCandidates((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete candidate");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const filtered = candidates.filter(
     (c) =>
@@ -199,12 +219,26 @@ function CandidatesContent() {
                         )}
                       </td>
                       <td className="px-4 py-4 text-right">
-                        <Link
-                          href={`/candidates/${c.id}`}
-                          className="text-xs text-primary font-semibold hover:underline"
-                        >
-                          View →
-                        </Link>
+                        <div className="flex justify-end items-center gap-3">
+                          <Link
+                            href={`/candidates/${c.id}`}
+                            className="text-xs text-primary font-semibold hover:underline"
+                          >
+                            View →
+                          </Link>
+
+                          <button
+                            onClick={() => handleDelete(c.id)}
+                            disabled={deletingId === c.id}
+                            className={`text-xs font-semibold hover:underline ${
+                              deletingId === c.id
+                                ? "text-slate-400 cursor-not-allowed"
+                                : "text-red-500"
+                            }`}
+                          >
+                            {deletingId === c.id ? "Deleting..." : "Delete"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))

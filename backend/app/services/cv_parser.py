@@ -35,7 +35,7 @@ from app.services.llm_client import extract_with_llm, is_ollama_available
 logger = logging.getLogger(__name__)
 
 
-# ─── PDF text extraction ──────────────────────────────────────────────────────
+# PDF text extraction
 
 def extract_text_pymupdf(pdf_path: str) -> str:
     """Extract text from PDF using PyMuPDF (preferred)."""
@@ -101,7 +101,7 @@ def extract_pdf_text(pdf_path: str) -> str:
     return text
 
 
-# ─── Rule-based extraction (fallback when Ollama unavailable) ─────────────────
+# Rule-based extraction (fallback when Ollama unavailable)
 
 _EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 _PHONE_RE = re.compile(r"(?:\+92|0092|0)?[\s\-]?3\d{2}[\s\-]?\d{7}|(?:\+\d{1,3}[\s\-]?)?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4}")
@@ -199,7 +199,7 @@ def rule_based_extract(text: str) -> dict:
         "present_employment": present_employment,
     }
 
-    # ── Education ──────────────────────────────────────────────────────────────
+    # Education
     education: list[dict] = []
     edu_section_start = None
     for i, line in enumerate(lines):
@@ -247,7 +247,7 @@ def rule_based_extract(text: str) -> dict:
         if current_rec:
             education.append(current_rec)
 
-    # ── Experience ─────────────────────────────────────────────────────────────
+    # Experience
     experience: list[dict] = []
     exp_section_start = None
     for i, line in enumerate(lines):
@@ -284,7 +284,7 @@ def rule_based_extract(text: str) -> dict:
         if current_exp:
             experience.append(current_exp)
 
-    # ── Skills ─────────────────────────────────────────────────────────────────
+    # Skills
     skills: list[str] = []
     skills_section_start = None
     for i, line in enumerate(lines):
@@ -304,7 +304,7 @@ def rule_based_extract(text: str) -> dict:
                 if 2 < len(p) < 50:
                     skills.append(p)
 
-    # ── Publications ───────────────────────────────────────────────────────────
+    # Publications
     publications: list[dict] = []
     pub_section_start = None
     for i, line in enumerate(lines):
@@ -358,7 +358,7 @@ def _map_degree_level(text: str) -> str:
     return "Other"
 
 
-# ─── Missing field detection ──────────────────────────────────────────────────
+# Missing field detection
 
 def detect_missing_fields(doc: CandidateDocument) -> list[str]:
     missing = []
@@ -386,7 +386,7 @@ def detect_missing_fields(doc: CandidateDocument) -> list[str]:
     return missing
 
 
-# ─── Skills inference fallback ──────────────────────────────────────────────
+# Skills inference fallback
 
 def _infer_skills_from_content(doc: CandidateDocument) -> list[str]:
     """Derive technical skills from education specializations and publication topics
@@ -430,7 +430,7 @@ def _infer_skills_from_content(doc: CandidateDocument) -> list[str]:
     return inferred[:30]
 
 
-# ─── CSV export ───────────────────────────────────────────────────────────────
+# CSV export
 
 def export_to_csv(doc: CandidateDocument, output_dir: str) -> str:
     """Export key candidate fields to a CSV file. Returns the path to the CSV."""
@@ -489,7 +489,7 @@ def export_to_csv(doc: CandidateDocument, output_dir: str) -> str:
     return csv_path
 
 
-# ─── Multi-CV detection and splitting ────────────────────────────────────────
+# Multi-CV detection and splitting
 
 # Matches the portal header that begins each candidate's section in batch PDFs,
 # e.g. "Candidate for the Post of Assistant Professor - … (Apply Date: …)"
@@ -630,7 +630,7 @@ def _unique_path(directory: str, filename: str) -> str:
     return path
 
 
-# ─── Main parse function ──────────────────────────────────────────────────────
+# Main parse function
 
 async def parse_cv(pdf_path: str, processed_dir: str) -> CandidateDocument:
     """

@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 
-# ─── Sub-models ──────────────────────────────────────────────────────────────
+# Sub-models
 
 class PersonalInfo(BaseModel):
     name: str = ""
@@ -72,7 +72,7 @@ class Supervision(BaseModel):
     thesis_title: str = ""
 
 
-# ─── Analysis sub-models (Milestone 2) ───────────────────────────────────────
+# Analysis sub-models (Milestone 2)
 
 class EducationGap(BaseModel):
     from_level: str = ""
@@ -140,7 +140,7 @@ class ResearchProfileSummary(BaseModel):
     overall_assessment: str = ""
 
 
-# ─── Research quality models (Milestone 3) ───────────────────────────────────
+# Research quality models (Milestone 3)
 
 class JournalQualityInfo(BaseModel):
     """Quality assessment for a journal publication venue."""
@@ -201,7 +201,7 @@ class TopicVariabilityResult(BaseModel):
 
 class FullResearchProfile(BaseModel):
     """Complete research profile (Milestone 3 — Modules 3.2, 3.6, 3.7)."""
-    # ── Basic counts (from ResearchProfileSummary) ───────────────────────────
+    # Basic counts (from ResearchProfileSummary)
     total_publications: int = 0
     journal_count: int = 0
     conference_count: int = 0
@@ -211,26 +211,26 @@ class FullResearchProfile(BaseModel):
     publication_trend: str = ""
     overall_assessment: str = ""
 
-    # ── Quality analysis ─────────────────────────────────────────────────────
+    # Quality analysis
     publication_quality: list[PublicationQualityItem] = []
     book_quality: list[BookQualityInfo] = []
 
-    # ── Aggregate quality metrics ─────────────────────────────────────────────
+    # Aggregate quality metrics
     high_quality_journal_count: int = 0    # Q1 + Q2 journals
     top_conference_count: int = 0          # CORE A* + A conferences
     first_author_count: int = 0
     scopus_indexed_count: int = 0
 
-    # ── Topic variability (Module 3.6) ────────────────────────────────────────
+    # Topic variability (Module 3.6)
     topic_variability: Optional[TopicVariabilityResult] = None
 
-    # ── Co-author analysis (Module 3.7) ──────────────────────────────────────
+    # Co-author analysis (Module 3.7)
     co_author_analysis: Optional[CoAuthorStats] = None
 
-    # ── Score ─────────────────────────────────────────────────────────────────
+    # Score
     research_score: Optional[float] = None  # 0-100
 
-    # ── DOI-enriched publications (set during analysis, saved back to MongoDB) ─
+    # DOI-enriched publications (set during analysis, saved back to MongoDB)
     enriched_publications: list[dict] = []
 
 
@@ -248,7 +248,7 @@ class EmailDraft(BaseModel):
     missing_items: list[str] = []
 
 
-# ─── Main candidate document ─────────────────────────────────────────────────
+# Main candidate document
 
 class CandidateDocument(BaseModel):
     """MongoDB document shape for a processed candidate."""
@@ -286,7 +286,7 @@ class CandidateDocument(BaseModel):
     summary: str = ""
 
 
-# ─── API response shapes ─────────────────────────────────────────────────────
+# API response shapes
 
 class CandidateListItem(BaseModel):
     id: str

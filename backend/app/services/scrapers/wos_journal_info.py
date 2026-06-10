@@ -37,7 +37,7 @@ _CACHE_FILE = "wos_journal_info_cache.json"
 _CACHE_TTL_DAYS = 30  # cache entries expire after 30 days
 
 
-# ── cache helpers ──────────────────────────────────────────────────────────────
+# cache helpers
 
 def _cache_path() -> str:
     cache_dir = os.path.join(get_settings().reference_data_dir, "cache")
@@ -78,7 +78,7 @@ def _is_fresh(entry: dict) -> bool:
     return age_days < _CACHE_TTL_DAYS
 
 
-# ── HTML parsing helpers ───────────────────────────────────────────────────────
+# HTML parsing helpers
 
 def _text(element) -> str:
     return element.get_text(strip=True) if element else ""
@@ -137,7 +137,7 @@ def _parse_detail_page(html: str) -> dict:
     return extra
 
 
-# ── HTTP helpers ───────────────────────────────────────────────────────────────
+# HTTP helpers
 
 def _http_search(query: str) -> tuple[int, list[dict]]:
     """Perform an HTTP search and return (total, partial_records)."""
@@ -161,7 +161,7 @@ def _http_detail(journal_id: str) -> dict:
         return {}
 
 
-# ── public API ─────────────────────────────────────────────────────────────────
+# public API
 
 def search(query: str, fetch_details: bool = False) -> list[dict]:
     """

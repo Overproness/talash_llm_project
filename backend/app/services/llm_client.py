@@ -23,12 +23,12 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-# ── Runtime provider state ────────────────────────────────────────────────────
+# Runtime provider state
 
 @dataclass
 class _RuntimeConfig:
-    provider: str = ""   # empty → use settings default
-    model: str = ""      # empty → use provider default model
+    provider: str = ""
+    model: str = ""
 
 _runtime = _RuntimeConfig()
 
@@ -78,7 +78,7 @@ def set_runtime_provider(provider: str, model: str = "") -> None:
     logger.info("LLM provider switched → %s / %s", provider, model or "(default)")
 
 
-# ── LLM factory ──────────────────────────────────────────────────────────────
+# LLM factory
 
 def _build_llm(provider: str, model: str) -> BaseChatModel:
     """Internal factory: build a LangChain chat model for *provider* using *model*."""
@@ -133,7 +133,7 @@ def get_llm_large() -> BaseChatModel:
     return _build_llm(get_active_provider(), get_active_model_large())
 
 
-# ── Availability check ────────────────────────────────────────────────────────
+# Availability check
 
 async def is_llm_available() -> bool:
     """Check whether the active provider is reachable / properly configured."""
@@ -166,7 +166,7 @@ async def is_ollama_available() -> bool:
     return await is_llm_available()
 
 
-# ── Extraction prompt ─────────────────────────────────────────────────────────
+# Extraction prompt
 
 _SYSTEM = (
     "You are an expert CV/resume parser specializing in academic and professional CVs. "
@@ -270,7 +270,7 @@ Return ONLY a valid JSON object with this exact structure (use empty strings/arr
 }}"""
 
 
-# ── Main extraction function ──────────────────────────────────────────────────
+# Main extraction function
 
 # Standard CVs: up to 12 000 chars fed to the standard model.
 # Large CVs (> large_cv_threshold_chars): up to 40 000 chars fed to the large

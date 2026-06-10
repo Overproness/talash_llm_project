@@ -41,7 +41,7 @@ _CACHE_TTL_DAYS = 7
 _MIN_FUZZY_SCORE = 70  # local threshold below which we also do a live search
 
 
-# ── cache helpers ──────────────────────────────────────────────────────────────
+# cache helpers
 
 def _cache_path() -> str:
     cache_dir = os.path.join(get_settings().reference_data_dir, "cache")
@@ -78,7 +78,7 @@ def _is_fresh(entry: dict) -> bool:
     return age_days < _CACHE_TTL_DAYS
 
 
-# ── local data helpers ─────────────────────────────────────────────────────────
+# local data helpers
 
 def _load_local() -> list[dict]:
     """Load the bulk-downloaded core_conferences.json, if it exists."""
@@ -129,7 +129,7 @@ def _local_search(query: str, local: list[dict], top_n: int = 10) -> list[dict]:
     return results
 
 
-# ── live HTTP helpers ──────────────────────────────────────────────────────────
+# live HTTP helpers
 
 _RANK_COL = "rank"
 
@@ -179,7 +179,7 @@ def _live_search(query: str) -> list[dict]:
         return []
 
 
-# ── public API ─────────────────────────────────────────────────────────────────
+# public API
 
 def search(query: str, force_live: bool = False) -> list[dict]:
     """

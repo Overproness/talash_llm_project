@@ -39,7 +39,7 @@ from app.services.llm_client import extract_with_llm_custom, is_llm_available
 
 logger = logging.getLogger(__name__)
 
-# ─── Reference data loading ───────────────────────────────────────────────────
+# Reference data loading
 
 @lru_cache(maxsize=1)
 def _load_conferences() -> list[dict]:
@@ -131,7 +131,7 @@ def cache_clear() -> None:
     logger.info("research_analyzer: reference data caches cleared")
 
 
-# ─── Authorship role detection ────────────────────────────────────────────────
+# Authorship role detection
 
 def _normalize_name(name: str) -> str:
     """Strip titles and normalize for fuzzy matching."""
@@ -167,8 +167,7 @@ def detect_authorship_role(candidate_name: str, authors: list[str]) -> tuple[str
         return "sole_author", 0
 
     is_first = position == 0
-    # In CS convention last author is often corresponding, but we can't determine
-    # corresponding author from author list alone — we flag first + last separately
+
     is_last = position == total - 1
 
     if is_first and is_last:
@@ -180,7 +179,7 @@ def detect_authorship_role(candidate_name: str, authors: list[str]) -> tuple[str
     return "co_author", position
 
 
-# ─── Publisher inference ──────────────────────────────────────────────────────
+# Publisher inference
 
 _PUBLISHER_KEYWORDS = {
     "IEEE": ["ieee", "institute of electrical and electronics"],
@@ -205,7 +204,7 @@ def _infer_publisher_from_venue(venue: str) -> str:
     return "unknown"
 
 
-# ─── CrossRef DOI lookup ─────────────────────────────────────────────────────
+# CrossRef DOI lookup
 
 _CROSSREF_BASE = "https://api.crossref.org/works"
 _crossref_cache: dict[str, Optional[str]] = {}
@@ -260,7 +259,7 @@ async def _crossref_doi_lookup(title: str) -> Optional[str]:
         return None
 
 
-# ─── Scopus API ───────────────────────────────────────────────────────────────
+# Scopus API
 
 _SCOPUS_BASE = "https://api.elsevier.com/content/serial/title"
 _scopus_cache: dict[str, Optional[dict]] = {}
@@ -351,7 +350,7 @@ async def _scopus_lookup(*, issn: str = "", title: str = "") -> Optional[dict]:
         return None
 
 
-# ─── LLM journal quality fallback ────────────────────────────────────────────
+# LLM journal quality fallback
 
 _JOURNAL_QUALITY_PROMPT = """Given the journal venue name and optional ISSN below, determine its academic quality.
 
@@ -421,11 +420,11 @@ async def _wos_journal_lookup(venue: str) -> Optional[JournalQualityInfo]:
         results: list[dict] = await loop.run_in_executor(
             None, lambda: wos_journal_info.best_match(venue)
         )
-        # best_match returns a single dict or None
+
         if not results:
             return None
 
-        hit = results  # best_match returns a dict
+        hit = results
         jif_raw = hit.get("Journal Impact Factor (JIF)", "") or ""
         wos_indexes = hit.get("WoS Core Citation Indexes", "") or ""
 
@@ -455,7 +454,7 @@ async def _wos_journal_lookup(venue: str) -> Optional[JournalQualityInfo]:
         return None
 
 
-# ─── Journal quality check ────────────────────────────────────────────────────
+# Journal quality check
 
 async def check_journal_quality(venue: str, issn: str) -> JournalQualityInfo:
     """
@@ -583,7 +582,7 @@ def _infer_quality_from_publisher(publisher: str, venue: str) -> Optional[Journa
     return None
 
 
-# ─── Conference quality check ─────────────────────────────────────────────────
+# Conference quality check
 
 _SERIES_NUM_RE = re.compile(
     r"\b(\d+)(?:st|nd|rd|th)\b",
@@ -656,7 +655,7 @@ def check_conference_quality(venue: str) -> ConferenceQualityInfo:
     )
 
 
-# ─── Book publisher assessment ────────────────────────────────────────────────
+# Book publisher assessment
 
 def assess_book_publisher(publisher: str) -> BookQualityInfo:
     """Classify a book publisher by credibility using fuzzy matching."""
@@ -694,7 +693,7 @@ def assess_book_publisher(publisher: str) -> BookQualityInfo:
     )
 
 
-# ─── Topic variability (Module 3.6) ──────────────────────────────────────────
+# Topic variability (Module 3.6)
 
 _TOPIC_KEYWORDS: dict[str, list[str]] = {
     "machine learning": ["machine learning", "deep learning", "neural network", "lstm", "rnn", "cnn", "transformer", "bert", "gpt", "reinforcement learning", "federated learning", "transfer learning", "ann", "gan", "autoencoder"],
@@ -771,7 +770,7 @@ def analyze_topic_variability(publications: list[Publication]) -> TopicVariabili
     )
 
 
-# ─── Co-author analysis (Module 3.7) ─────────────────────────────────────────
+# Co-author analysis (Module 3.7)
 
 def analyze_co_authors(
     publications: list[Publication], candidate_name: str
@@ -795,7 +794,7 @@ def analyze_co_authors(
 
         for author in authors:
             norm_author = _normalize_name(author)
-            # Skip if this looks like the candidate themselves
+
             if fuzz.token_set_ratio(norm_author, norm_candidate) >= 75:
                 continue
             co_author_freq[norm_author] = co_author_freq.get(norm_author, 0) + 1
@@ -825,7 +824,7 @@ def analyze_co_authors(
     )
 
 
-# ─── Research score computation ───────────────────────────────────────────────
+# Research score computation
 
 def _compute_research_score(profile: FullResearchProfile) -> float:
     """Compute a quality-weighted composite research score (0-100)."""
@@ -856,7 +855,7 @@ def _compute_research_score(profile: FullResearchProfile) -> float:
     return round(max(0.0, min(100.0, score)), 1)
 
 
-# ─── Quality label helper ─────────────────────────────────────────────────────
+# Quality label helper
 
 def _quality_label(
     pub: Publication,
@@ -886,7 +885,7 @@ def _quality_label(
     return "Unknown"
 
 
-# ─── Main orchestration function ─────────────────────────────────────────────
+# Main orchestration function
 
 async def analyze_full_research_profile(
     doc: CandidateDocument,
@@ -910,7 +909,7 @@ async def analyze_full_research_profile(
     years = [p.year for p in pubs if p.year]
     years_range = f"{min(years)}-{max(years)}" if years else "Unknown"
 
-    # ── Publication trend ─────────────────────────────────────────────────────
+    # Publication trend
     if len(years) >= 3:
         sorted_years = sorted(years)
         mid = len(sorted_years) // 2
@@ -925,7 +924,7 @@ async def analyze_full_research_profile(
     else:
         pub_trend = "insufficient_data"
 
-    # ── Per-publication quality enrichment ───────────────────────────────────
+    # Per-publication quality enrichment
     pub_quality_items: list[PublicationQualityItem] = []
     high_quality_journals = 0
     top_conferences = 0
@@ -970,12 +969,12 @@ async def analyze_full_research_profile(
             )
         )
 
-    # ── Book quality ──────────────────────────────────────────────────────────
+    # Book quality
     book_quality_items: list[BookQualityInfo] = [
         assess_book_publisher(book.publisher) for book in doc.books
     ]
 
-    # ── CrossRef DOI enrichment ───────────────────────────────────────────────
+    # CrossRef DOI enrichment
     enriched_pubs: list[dict] = []
     for pub in pubs:
         pub_dict = pub.model_dump()
@@ -985,13 +984,13 @@ async def analyze_full_research_profile(
                 pub_dict["doi"] = found_doi
         enriched_pubs.append(pub_dict)
 
-    # ── Topic variability ─────────────────────────────────────────────────────
+    # Topic variability
     topic_result = analyze_topic_variability(pubs)
 
-    # ── Co-author analysis ────────────────────────────────────────────────────
+    # Co-author analysis
     co_author_result = analyze_co_authors(pubs, candidate_name)
 
-    # ── Research areas (keyword-based, same as M2) ────────────────────────────
+    # Research areas (keyword-based, same as M2)
     primary_areas = [
         item["area"]
         for item in topic_result.topic_breakdown[:5]
@@ -1000,7 +999,7 @@ async def analyze_full_research_profile(
     if not primary_areas:
         primary_areas = ["General"]
 
-    # ── Overall assessment text ───────────────────────────────────────────────
+    # Overall assessment text
     assessment_parts = [f"Total publications: {len(pubs)}."]
     if journal_count:
         assessment_parts.append(

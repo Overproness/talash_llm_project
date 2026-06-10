@@ -31,8 +31,8 @@ async def _process_watched_file(file_path: str, settings) -> None:
     db = get_db()
     try:
         filename = Path(file_path).name
-        # Check by both file_path and filename — the upload API creates the DB record
-        # BEFORE writing the file, so by the time we run here the record already exists.
+
+
         existing = await db.candidates.find_one(
             {"$or": [{"file_path": file_path}, {"filename": filename}],
              "processing_status": {"$ne": "failed"}}
@@ -112,7 +112,7 @@ async def lifespan(app: FastAPI):
     await db.users.create_index("email", unique=True)
     logger.info("Ensured unique index on users.email")
 
-    # ── On Vercel, seed /tmp/reference_data from the bundled static files ───
+    #  On Vercel, seed /tmp/reference_data from the bundled static files
     import os, shutil
     if os.environ.get("VERCEL"):
         bundled = "data/reference_data"
@@ -123,7 +123,8 @@ async def lifespan(app: FastAPI):
                 logger.info(f"Seeded {target} from bundled {bundled}")
             except Exception as _e:
                 logger.warning(f"Could not seed reference data to {target}: {_e}")
-    # ── APScheduler ──────────────────────────────────────────────────────────
+
+    # APScheduler
     # Monthly job: 1st of every month at 02:00 UTC
     _scheduler.add_job(
         run_monthly_scrapers,
@@ -148,7 +149,7 @@ async def lifespan(app: FastAPI):
     _scheduler.start()
     logger.info("APScheduler started")
 
-    # ── Folder Watcher ───────────────────────────────────────────────────────
+    # Folder Watcher
     watcher_queue: asyncio.Queue = asyncio.Queue()
     _folder_watcher = FolderWatcher(settings.cv_upload_dir, watcher_queue)
     _folder_watcher.start()

@@ -18,7 +18,7 @@ from app.services.llm_client import generate_with_llm_text, is_llm_available
 logger = logging.getLogger(__name__)
 
 
-# ─── Enhanced missing field detection ─────────────────────────────────────────
+# Enhanced missing field detection
 
 def detect_missing_info_detailed(doc: CandidateDocument) -> list[MissingInfoItem]:
     """Comprehensive missing information detection with severity classification."""
@@ -139,7 +139,7 @@ def detect_missing_info_detailed(doc: CandidateDocument) -> list[MissingInfoItem
     return missing
 
 
-# ─── Email generation ─────────────────────────────────────────────────────────
+# Email generation
 
 def _generate_email_template(doc: CandidateDocument, missing: list[MissingInfoItem]) -> EmailDraft:
     """Generate a template-based email draft (no LLM required)."""
@@ -282,7 +282,7 @@ async def generate_email_with_llm(
         return _generate_email_template(doc, missing)
 
 
-# ─── Main entry points ────────────────────────────────────────────────────────
+# Main entry points
 
 async def generate_email_draft(
     doc: CandidateDocument,

@@ -95,7 +95,7 @@ async def upload_cv(
     os.makedirs(settings.cv_upload_dir, exist_ok=True)
     safe_name = Path(file.filename).name
 
-    # ── Multi-CV path ──────────────────────────────────────────────────────────
+    # Multi-CV path
     num_cvs = count_cvs_in_bytes(file_bytes)
     if num_cvs > 1:
         logger.info(f"Multi-CV PDF detected: {safe_name} contains {num_cvs} CVs. Splitting…")
@@ -120,7 +120,7 @@ async def upload_cv(
             candidates=bulk_candidates,
         )
 
-    # ── Single-CV path (original behaviour) ───────────────────────────────────
+    # Single-CV path (original behaviour)
     # Deduplicate: if a non-failed candidate with this filename already exists, return it
     existing = await db.candidates.find_one(
         {"filename": safe_name, "processing_status": {"$ne": "failed"}}

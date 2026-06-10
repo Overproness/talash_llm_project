@@ -24,7 +24,7 @@ BEALLS_CSV_URL = (
     "stop-predatory-journals.github.io/refs/heads/master/_data/publishers.csv"
 )
 
-# ─── Hard-coded reputable publishers ─────────────────────────────────────────
+# Hard-coded reputable publishers
 _REPUTABLE: list[dict] = [
     {
         "name": "Elsevier",
@@ -112,7 +112,7 @@ _REPUTABLE: list[dict] = [
         "credibility": "top_academic",
         "type": "academic",
     },
-    # ── Open-access publishers (legitimate but vary in quality) ──
+    # Open-access publishers (legitimate but vary in quality)
     {
         "name": "MDPI",
         "aliases": ["MDPI", "Multidisciplinary Digital Publishing Institute"],

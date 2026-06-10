@@ -45,7 +45,7 @@ _DEFAULT_EMAIL = "texibag558@mugstock.com"
 _DEFAULT_PASSWORD = "@Talashllm12"
 
 
-# ── credential helpers ─────────────────────────────────────────────────────────
+# credential helpers
 
 def _credentials() -> tuple[str, str]:
     settings = get_settings()
@@ -54,7 +54,7 @@ def _credentials() -> tuple[str, str]:
     return email, pwd
 
 
-# ── cache helpers ──────────────────────────────────────────────────────────────
+# cache helpers
 
 def _cache_path() -> str:
     cache_dir = os.path.join(get_settings().reference_data_dir, "cache")
@@ -90,7 +90,7 @@ def _is_fresh(entry: dict) -> bool:
     return age_days < _CACHE_TTL_DAYS
 
 
-# ── Playwright helpers ─────────────────────────────────────────────────────────
+# Playwright helpers
 
 _JS_EXTRACT_CARDS = """
 () => {
@@ -202,7 +202,7 @@ def _scrape_with_playwright(query: str, max_pages: int = 20) -> list[dict]:
         page = context.new_page()
 
         try:
-            # ── Step 1: Log in ───────────────────────────────────────────────
+            # Step 1: Log in
             logger.info("clarivate_mjl: navigating to login page …")
             page.goto(_LOGIN_URL, wait_until="networkidle", timeout=30000)
             page.fill('input[name="email"]', email)
@@ -216,7 +216,7 @@ def _scrape_with_playwright(query: str, max_pages: int = 20) -> list[dict]:
                 # May already be on MJL home after login
                 pass
 
-            # ── Step 2: Navigate to MJL home ─────────────────────────────────
+            # Step 2: Navigate to MJL home
             if "mjl.clarivate.com" not in page.url:
                 logger.info("clarivate_mjl: navigating to MJL home …")
                 page.goto(_MJL_HOME, wait_until="networkidle", timeout=30000)
@@ -225,7 +225,7 @@ def _scrape_with_playwright(query: str, max_pages: int = 20) -> list[dict]:
             page.evaluate(_JS_REMOVE_CONSENT)
             page.wait_for_timeout(500)
 
-            # ── Step 3: Search ────────────────────────────────────────────────
+            # Step 3: Search
             logger.info(f"clarivate_mjl: searching for '{query}' …")
             try:
                 page.wait_for_selector("#search-box", timeout=15000)
@@ -255,7 +255,7 @@ def _scrape_with_playwright(query: str, max_pages: int = 20) -> list[dict]:
                 logger.warning("clarivate_mjl: no mat-card elements found — no results?")
                 return []
 
-            # ── Step 4: Paginate and extract ──────────────────────────────────
+            # Step 4: Paginate and extract
             page_num = 1
             while page_num <= max_pages:
                 page.evaluate(_JS_REMOVE_CONSENT)
@@ -299,7 +299,7 @@ def _scrape_with_playwright(query: str, max_pages: int = 20) -> list[dict]:
     return unique
 
 
-# ── public API ─────────────────────────────────────────────────────────────────
+# public API
 
 def search(query: str, max_pages: int = 20) -> list[dict]:
     """

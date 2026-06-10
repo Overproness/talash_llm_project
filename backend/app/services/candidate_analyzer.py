@@ -28,7 +28,7 @@ from app.services.llm_client import generate_with_llm_text, is_llm_available
 logger = logging.getLogger(__name__)
 
 
-# ─── Research profile summary (partial for M2) ───────────────────────────────
+# Research profile summary (partial for M2)
 
 def analyze_research_profile(doc: CandidateDocument) -> ResearchProfileSummary:
     """Basic research profile analysis — counts, trends, areas."""
@@ -111,7 +111,7 @@ def analyze_research_profile(doc: CandidateDocument) -> ResearchProfileSummary:
     )
 
 
-# ─── Candidate summary generation ────────────────────────────────────────────
+# Candidate summary generation
 
 def _generate_summary_rule_based(
     doc: CandidateDocument,
@@ -212,7 +212,7 @@ async def _generate_summary_with_llm(
         return _generate_summary_rule_based(doc, edu_analysis, exp_analysis, research)
 
 
-# ─── Overall score computation ────────────────────────────────────────────────
+# Overall score computation
 
 def compute_overall_score(
     edu_analysis: Optional[EducationAnalysis],
@@ -263,7 +263,7 @@ def compute_overall_score(
     return round(max(0, min(100, score)), 1)
 
 
-# ─── Main analysis pipeline ──────────────────────────────────────────────────
+# Main analysis pipeline
 
 async def run_full_analysis(doc: CandidateDocument) -> dict:
     """

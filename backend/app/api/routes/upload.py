@@ -16,6 +16,7 @@ from app.services.auth_service import get_current_user
 from app.services.cv_parser import count_cvs_in_bytes, parse_cv, split_pdf_bytes
 from app.services.candidate_analyzer import run_full_analysis
 from app.services.email_generator import detect_missing_info_detailed, generate_email_draft
+from app.services.llm_client import llm_config_from_user, use_llm_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -26,10 +27,12 @@ async def _process_cv_background(
     candidate_id: str,
     db: AsyncIOMotorDatabase,
     settings,
+    llm_config,
 ) -> None:
     """Parse and analyse a CV in the background, updating MongoDB when done."""
     try:
-        parsed: CandidateDocument = await parse_cv(dest_path, settings.processed_dir)
+        with use_llm_config(llm_config):
+            parsed: CandidateDocument = await parse_cv(dest_path, settings.processed_dir)
         update_data = parsed.model_dump(exclude={"filename", "file_path"})
         # Keep status as "processing" so the frontend continues polling while analysis runs
         update_data["processing_status"] = "processing"
@@ -39,7 +42,8 @@ async def _process_cv_background(
         )
 
         try:
-            analysis_results = await run_full_analysis(parsed)
+            with use_llm_config(llm_config):
+                analysis_results = await run_full_analysis(parsed)
             analysis_results["processing_status"] = "done"
             await db.candidates.update_one(
                 {"_id": ObjectId(candidate_id)},
@@ -51,7 +55,8 @@ async def _process_cv_background(
             try:
                 missing = detect_missing_info_detailed(parsed)
                 if missing:
-                    email_draft = await generate_email_draft(parsed, missing)
+                    with use_llm_config(llm_config):
+                        email_draft = await generate_email_draft(parsed, missing)
                     await db.candidates.update_one(
                         {"_id": ObjectId(candidate_id)},
                         {"$set": {"email_draft": email_draft.model_dump()}},
@@ -81,6 +86,7 @@ async def upload_cv(
     current_user: dict = Depends(get_current_user),
 ):
     settings = get_settings()
+    llm_config = llm_config_from_user(current_user)
 
     # Validate file type
     if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -107,7 +113,7 @@ async def upload_cv(
             pending_doc = _make_pending_doc(split_filename, split_path)
             result = await db.candidates.insert_one(pending_doc)
             cid = str(result.inserted_id)
-            background_tasks.add_task(_process_cv_background, split_path, cid, db, settings)
+            background_tasks.add_task(_process_cv_background, split_path, cid, db, settings, llm_config)
             bulk_candidates.append(BulkCandidateInfo(candidate_id=cid, filename=split_filename))
             logger.info(f"Queued split CV: {split_filename} → {cid}")
 
@@ -155,7 +161,7 @@ async def upload_cv(
         f.write(file_bytes)
     logger.info(f"Saved uploaded file to {dest_path}")
 
-    background_tasks.add_task(_process_cv_background, dest_path, candidate_id, db, settings)
+    background_tasks.add_task(_process_cv_background, dest_path, candidate_id, db, settings, llm_config)
 
     return UploadResponse(
         candidate_id=candidate_id,

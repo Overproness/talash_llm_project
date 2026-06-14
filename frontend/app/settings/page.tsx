@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [llm, setLlm] = useState<LLMSettings | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
+  const [apiKey, setApiKey] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(
     null,
@@ -42,6 +43,7 @@ export default function SettingsPage() {
     // Reset to first suggested model for that provider
     const models = llm?.providers[p]?.models ?? [];
     setSelectedModel(models[0] ?? "");
+    setApiKey("");
     setSaveMsg(null);
   };
 
@@ -49,7 +51,11 @@ export default function SettingsPage() {
     setSaving(true);
     setSaveMsg(null);
     try {
-      const result = await api.setLLMProvider(selectedProvider, selectedModel);
+      const result = await api.setLLMProvider(
+        selectedProvider,
+        selectedModel,
+        apiKey.trim() || undefined,
+      );
       setLlm((prev) =>
         prev
           ? {
@@ -57,9 +63,15 @@ export default function SettingsPage() {
               active_provider: result.active_provider,
               active_model: result.active_model,
               available: result.available,
+              configured: {
+                ...prev.configured,
+                [selectedProvider]:
+                  prev.configured[selectedProvider] || Boolean(apiKey.trim()),
+              },
             }
           : prev,
       );
+      setApiKey("");
       setSaveMsg({
         ok: true,
         text: `Switched to ${result.active_provider} — ${result.available ? "online" : "configured (offline)"}`,
@@ -74,7 +86,8 @@ export default function SettingsPage() {
 
   const isDirty =
     selectedProvider !== llm?.active_provider ||
-    selectedModel !== llm?.active_model;
+    selectedModel !== llm?.active_model ||
+    Boolean(apiKey.trim());
 
   return (
     <div className="flex min-h-screen bg-surface">
@@ -167,7 +180,7 @@ export default function SettingsPage() {
                           <div className="flex gap-1">
                             {configured && (
                               <span className="text-[9px] bg-emerald-100 text-emerald-700 font-bold px-1.5 py-0.5 rounded-full uppercase">
-                                Key set
+                                Saved key
                               </span>
                             )}
                             {key === llm.active_provider && (
@@ -182,7 +195,7 @@ export default function SettingsPage() {
                         </span>
                         {info.requires_key && !configured && (
                           <span className="text-[10px] text-amber-600 mt-0.5 block">
-                            Needs {info.key_env} in .env
+                            Add your API key
                           </span>
                         )}
                       </button>
@@ -224,6 +237,29 @@ export default function SettingsPage() {
                     value={selectedModel}
                     onChange={(e) => setSelectedModel(e.target.value)}
                   />
+                </div>
+              )}
+
+              {llm?.providers[selectedProvider]?.requires_key && (
+                <div className="mb-5">
+                  <label className="text-xs text-on-surface-variant uppercase tracking-widest font-bold block mb-2">
+                    {llm.providers[selectedProvider].key_label ?? "API key"}
+                  </label>
+                  <input
+                    type="password"
+                    autoComplete="off"
+                    className="w-full bg-surface-container-low rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                    placeholder={
+                      llm.configured[selectedProvider]
+                        ? "Leave blank to keep your saved key"
+                        : "Paste your API key"
+                    }
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                  />
+                  <p className="text-xs text-outline mt-2">
+                    Saved to your account and used only for your LLM requests.
+                  </p>
                 </div>
               )}
 
@@ -271,11 +307,8 @@ export default function SettingsPage() {
                     ♊ Google Gemini
                   </p>
                   <p>
-                    Add{" "}
-                    <code className="text-primary">
-                      GOOGLE_API_KEY=your_key
-                    </code>{" "}
-                    to backend/.env
+                    Paste your Gemini API key above, then apply the Gemini
+                    provider.
                   </p>
                   <p className="text-xs text-outline">
                     Get key at aistudio.google.com/app/apikey
@@ -286,9 +319,8 @@ export default function SettingsPage() {
                     🤖 OpenAI
                   </p>
                   <p>
-                    Add{" "}
-                    <code className="text-primary">OPENAI_API_KEY=sk-…</code> to
-                    backend/.env
+                    Paste your OpenAI API key above before applying the OpenAI
+                    provider.
                   </p>
                 </div>
                 <div>
@@ -296,8 +328,8 @@ export default function SettingsPage() {
                     ⚡ Grok (xAI)
                   </p>
                   <p>
-                    Add <code className="text-primary">XAI_API_KEY=xai-…</code>{" "}
-                    to backend/.env
+                    Paste your xAI API key above before applying the Grok
+                    provider.
                   </p>
                   <p className="text-xs text-outline">
                     Uses OpenAI-compatible endpoint at api.x.ai/v1

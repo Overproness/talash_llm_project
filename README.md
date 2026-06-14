@@ -267,16 +267,16 @@ LLM_PROVIDER=ollama
 OLLAMA_HOST=http://localhost:11434
 OLLAMA_MODEL=llama3.2:3b
 
-# Google Gemini (if LLM_PROVIDER=gemini)
-GOOGLE_API_KEY=
+# Google Gemini
+# Users add their own Gemini API key in Settings after signing in.
 GEMINI_MODEL=gemini-1.5-flash
 
-# OpenAI (if LLM_PROVIDER=openai)
-OPENAI_API_KEY=
+# OpenAI
+# Users add their own OpenAI API key in Settings after signing in.
 OPENAI_MODEL=gpt-4o-mini
 
-# Grok / xAI (if LLM_PROVIDER=grok)
-XAI_API_KEY=
+# Grok / xAI
+# Users add their own xAI API key in Settings after signing in.
 GROK_MODEL=grok-3-mini
 
 # Storage
@@ -447,7 +447,7 @@ Upon pipeline completion, the configured LLM generates a 4–6 sentence professi
 
 ## LLM Provider Support
 
-Four providers are supported, switchable at runtime via the Settings UI or `.env`:
+Four providers are supported and switchable per user via the Settings UI:
 
 | Provider | Models | Use Case |
 |----------|--------|----------|
@@ -456,7 +456,7 @@ Four providers are supported, switchable at runtime via the Settings UI or `.env
 | OpenAI | gpt-4o-mini / gpt-4o | Proven accuracy |
 | Grok / xAI | grok-3-mini / grok-3 | Fast inference |
 
-CVs exceeding 8,000 characters are automatically routed to the larger model variant to reduce hallucinations.
+Each signed-in user supplies their own cloud provider API key in Settings. CVs exceeding 8,000 characters are automatically routed to the larger model variant to reduce hallucinations.
 
 **Ollama quickstart:**
 ```bash

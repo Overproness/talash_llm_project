@@ -28,7 +28,6 @@ class Settings(BaseSettings):
     ollama_model_large: str = "llama3.1:8b"
 
     # Google Gemini
-    google_api_key: str = ""
     gemini_model: str = "gemini-2.0-pro"
     gemini_model_large: str = "gemini-2.5-pro"
 

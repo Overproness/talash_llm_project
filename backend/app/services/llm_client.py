@@ -7,14 +7,16 @@ Supported providers:
   openai  — OpenAI API
   grok    — xAI Grok (OpenAI-compatible endpoint)
 
-Provider and model can be switched at runtime via set_runtime_provider()
-without restarting the server.  Falls back to rule-based extraction
-when the active provider is unavailable.
+Provider, model, and API keys can be supplied per user at request time.
+Falls back to rule-based extraction when the active provider is unavailable.
 """
 
 import json
 import logging
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
+from typing import Iterator
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -29,19 +31,102 @@ logger = logging.getLogger(__name__)
 class _RuntimeConfig:
     provider: str = ""
     model: str = ""
+    api_keys: dict[str, str] | None = None
 
 _runtime = _RuntimeConfig()
+_user_runtime: ContextVar[_RuntimeConfig | None] = ContextVar("llm_user_runtime", default=None)
+_ENCRYPTED_KEY_PREFIX = "fernet:"
+
+
+def _api_key_cipher():
+    """Return a Fernet cipher derived from the app secret key."""
+    from base64 import urlsafe_b64encode
+    from hashlib import sha256
+
+    from cryptography.fernet import Fernet
+
+    secret = get_settings().secret_key.encode("utf-8")
+    key = urlsafe_b64encode(sha256(secret).digest())
+    return Fernet(key)
+
+
+def encrypt_api_key(api_key: str) -> str:
+    """Encrypt an API key for storage in the user document."""
+    token = _api_key_cipher().encrypt(api_key.encode("utf-8")).decode("utf-8")
+    return f"{_ENCRYPTED_KEY_PREFIX}{token}"
+
+
+def _decrypt_api_key(stored_key: str) -> str:
+    """Decrypt a stored API key, accepting legacy plain-text values."""
+    if not stored_key:
+        return ""
+    if not stored_key.startswith(_ENCRYPTED_KEY_PREFIX):
+        return stored_key
+
+    token = stored_key[len(_ENCRYPTED_KEY_PREFIX):]
+    try:
+        return _api_key_cipher().decrypt(token.encode("utf-8")).decode("utf-8")
+    except Exception:
+        logger.warning("Could not decrypt stored LLM API key.")
+        return ""
+
+
+def llm_config_from_user(user: dict | None) -> _RuntimeConfig:
+    """Build the active LLM config from a user document."""
+    if not user:
+        return _RuntimeConfig()
+
+    llm_settings = user.get("llm_settings") or {}
+    api_keys = llm_settings.get("api_keys") or {}
+    return _RuntimeConfig(
+        provider=(llm_settings.get("provider") or "").strip(),
+        model=(llm_settings.get("model") or "").strip(),
+        api_keys={
+            k: decrypted
+            for k, v in api_keys.items()
+            if isinstance(v, str) and (decrypted := _decrypt_api_key(v.strip()))
+        },
+    )
+
+
+@contextmanager
+def use_llm_config(config: _RuntimeConfig) -> Iterator[None]:
+    """Temporarily bind a user-specific LLM config for async service calls."""
+    token = _user_runtime.set(config)
+    try:
+        yield
+    finally:
+        _user_runtime.reset(token)
+
+
+def _get_runtime_config() -> _RuntimeConfig:
+    return _user_runtime.get() or _runtime
+
+
+def _provider_api_key(provider: str) -> str:
+    settings = get_settings()
+    config = _get_runtime_config()
+    api_keys = config.api_keys or {}
+
+    if provider == "gemini":
+        return api_keys.get("gemini", "")
+    if provider == "openai":
+        return api_keys.get("openai", "") or settings.openai_api_key
+    if provider == "grok":
+        return api_keys.get("grok", "") or settings.xai_api_key
+    return ""
 
 
 def get_active_provider() -> str:
     """Return the currently active LLM provider name."""
-    return _runtime.provider or get_settings().llm_provider
+    return _get_runtime_config().provider or get_settings().llm_provider
 
 
 def get_active_model() -> str:
     """Return the currently active model name for the active provider."""
-    if _runtime.model:
-        return _runtime.model
+    config = _get_runtime_config()
+    if config.model:
+        return config.model
     settings = get_settings()
     defaults = {
         "ollama": settings.ollama_model,
@@ -59,8 +144,9 @@ def get_active_model_large() -> str:
     is respected.  Otherwise the provider-specific large model from settings
     is returned.
     """
-    if _runtime.model:
-        return _runtime.model
+    config = _get_runtime_config()
+    if config.model:
+        return config.model
     settings = get_settings()
     defaults = {
         "ollama": settings.ollama_model_large,
@@ -72,7 +158,7 @@ def get_active_model_large() -> str:
 
 
 def set_runtime_provider(provider: str, model: str = "") -> None:
-    """Switch provider (and optionally model) at runtime, no restart needed."""
+    """Switch the process default provider for non-user flows."""
     _runtime.provider = provider
     _runtime.model = model
     logger.info("LLM provider switched → %s / %s", provider, model or "(default)")
@@ -96,26 +182,35 @@ def _build_llm(provider: str, model: str) -> BaseChatModel:
 
     if provider == "gemini":
         from langchain_google_genai import ChatGoogleGenerativeAI
+        api_key = _provider_api_key("gemini")
+        if not api_key:
+            raise ValueError("Google Gemini API key is not configured for this user.")
         return ChatGoogleGenerativeAI(
             model=model,
-            google_api_key=settings.google_api_key,
+            google_api_key=api_key,
             temperature=0.1,
             max_retries=2,
         )
 
     if provider == "openai":
         from langchain_openai import ChatOpenAI
+        api_key = _provider_api_key("openai")
+        if not api_key:
+            raise ValueError("OpenAI API key is not configured.")
         return ChatOpenAI(
             model=model,
-            api_key=settings.openai_api_key,
+            api_key=api_key,
             temperature=0.1,
         )
 
     if provider == "grok":
         from langchain_openai import ChatOpenAI
+        api_key = _provider_api_key("grok")
+        if not api_key:
+            raise ValueError("xAI API key is not configured.")
         return ChatOpenAI(
             model=model,
-            api_key=settings.xai_api_key,
+            api_key=api_key,
             base_url="https://api.x.ai/v1",
             temperature=0.1,
         )
@@ -150,13 +245,13 @@ async def is_llm_available() -> bool:
             return False
 
     if provider == "gemini":
-        return bool(settings.google_api_key)
+        return bool(_provider_api_key("gemini"))
 
     if provider == "openai":
-        return bool(settings.openai_api_key)
+        return bool(_provider_api_key("openai"))
 
     if provider == "grok":
-        return bool(settings.xai_api_key)
+        return bool(_provider_api_key("grok"))
 
     return False
 

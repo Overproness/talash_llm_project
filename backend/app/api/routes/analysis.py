@@ -23,6 +23,7 @@ from app.models.candidate import (
 from app.services.auth_service import get_current_user
 from app.services.candidate_analyzer import run_full_analysis
 from app.services.email_generator import detect_missing_info_detailed, generate_email_draft
+from app.services.llm_client import llm_config_from_user, use_llm_config
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -73,7 +74,8 @@ async def analyze_candidate(
     candidate = _doc_to_candidate(doc)
 
     try:
-        analysis_results = await run_full_analysis(candidate)
+        with use_llm_config(llm_config_from_user(current_user)):
+            analysis_results = await run_full_analysis(candidate)
         await db.candidates.update_one(
             {"_id": oid},
             {"$set": analysis_results},
@@ -128,7 +130,8 @@ async def generate_candidate_email(
             "message": "No missing information detected.",
         }
 
-    email_draft = await generate_email_draft(candidate, missing)
+    with use_llm_config(llm_config_from_user(current_user)):
+        email_draft = await generate_email_draft(candidate, missing)
 
     # Persist the freshly generated draft so future calls are instant
     await db.candidates.update_one(

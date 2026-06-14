@@ -48,7 +48,7 @@ async function publicRequest<T>(path: string, options?: RequestInit): Promise<T>
 export interface LLMProvider {
   label: string
   requires_key: boolean
-  key_env?: string
+  key_label?: string
   models: string[]
 }
 
@@ -123,12 +123,12 @@ export const api = {
   // Settings
   getLLMSettings: () => request<LLMSettings>('/settings/llm'),
 
-  setLLMProvider: (provider: string, model: string) =>
+  setLLMProvider: (provider: string, model: string, api_key?: string) =>
     request<{ active_provider: string; active_model: string; available: boolean }>(
       '/settings/llm',
       {
         method: 'POST',
-        body: JSON.stringify({ provider, model }),
+        body: JSON.stringify({ provider, model, ...(api_key ? { api_key } : {}) }),
       }
     ),
 
